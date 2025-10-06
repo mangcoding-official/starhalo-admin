@@ -28,6 +28,8 @@ import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authen
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
+import { Route as AuthenticatedPushNotificationsIndexRouteImport } from './routes/_authenticated/push-notifications/index'
+import { Route as AuthenticatedInformationsIndexRouteImport } from './routes/_authenticated/informations/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
 import { Route as AuthenticatedAppsIndexRouteImport } from './routes/_authenticated/apps/index'
 import { Route as ClerkAuthenticatedUserManagementRouteImport } from './routes/clerk/_authenticated/user-management'
@@ -133,6 +135,18 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedPushNotificationsIndexRoute =
+  AuthenticatedPushNotificationsIndexRouteImport.update({
+    id: '/push-notifications/',
+    path: '/push-notifications/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInformationsIndexRoute =
+  AuthenticatedInformationsIndexRouteImport.update({
+    id: '/informations/',
+    path: '/informations/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHelpCenterIndexRoute =
   AuthenticatedHelpCenterIndexRouteImport.update({
     id: '/help-center/',
@@ -216,6 +230,8 @@ export interface FileRoutesByFullPath {
   '/clerk/user-management': typeof ClerkAuthenticatedUserManagementRoute
   '/apps': typeof AuthenticatedAppsIndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
+  '/informations': typeof AuthenticatedInformationsIndexRoute
+  '/push-notifications': typeof AuthenticatedPushNotificationsIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
@@ -243,6 +259,8 @@ export interface FileRoutesByTo {
   '/clerk/user-management': typeof ClerkAuthenticatedUserManagementRoute
   '/apps': typeof AuthenticatedAppsIndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
+  '/informations': typeof AuthenticatedInformationsIndexRoute
+  '/push-notifications': typeof AuthenticatedPushNotificationsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
@@ -275,6 +293,8 @@ export interface FileRoutesById {
   '/clerk/_authenticated/user-management': typeof ClerkAuthenticatedUserManagementRoute
   '/_authenticated/apps/': typeof AuthenticatedAppsIndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
+  '/_authenticated/informations/': typeof AuthenticatedInformationsIndexRoute
+  '/_authenticated/push-notifications/': typeof AuthenticatedPushNotificationsIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
@@ -306,6 +326,8 @@ export interface FileRouteTypes {
     | '/clerk/user-management'
     | '/apps'
     | '/help-center'
+    | '/informations'
+    | '/push-notifications'
     | '/settings/'
     | '/tasks'
     | '/users'
@@ -333,6 +355,8 @@ export interface FileRouteTypes {
     | '/clerk/user-management'
     | '/apps'
     | '/help-center'
+    | '/informations'
+    | '/push-notifications'
     | '/settings'
     | '/tasks'
     | '/users'
@@ -364,6 +388,8 @@ export interface FileRouteTypes {
     | '/clerk/_authenticated/user-management'
     | '/_authenticated/apps/'
     | '/_authenticated/help-center/'
+    | '/_authenticated/informations/'
+    | '/_authenticated/push-notifications/'
     | '/_authenticated/settings/'
     | '/_authenticated/tasks/'
     | '/_authenticated/users/'
@@ -519,6 +545,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_authenticated/push-notifications/': {
+      id: '/_authenticated/push-notifications/'
+      path: '/push-notifications'
+      fullPath: '/push-notifications'
+      preLoaderRoute: typeof AuthenticatedPushNotificationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/informations/': {
+      id: '/_authenticated/informations/'
+      path: '/informations'
+      fullPath: '/informations'
+      preLoaderRoute: typeof AuthenticatedInformationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/help-center/': {
       id: '/_authenticated/help-center/'
       path: '/help-center'
@@ -621,6 +661,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedAppsIndexRoute: typeof AuthenticatedAppsIndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
+  AuthenticatedInformationsIndexRoute: typeof AuthenticatedInformationsIndexRoute
+  AuthenticatedPushNotificationsIndexRoute: typeof AuthenticatedPushNotificationsIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
 }
@@ -631,6 +673,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedAppsIndexRoute: AuthenticatedAppsIndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
+  AuthenticatedInformationsIndexRoute: AuthenticatedInformationsIndexRoute,
+  AuthenticatedPushNotificationsIndexRoute:
+    AuthenticatedPushNotificationsIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
 }

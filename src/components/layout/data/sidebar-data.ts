@@ -21,6 +21,7 @@ import {
   AudioWaveform,
   Command,
   GalleryVerticalEnd,
+  Info
 } from 'lucide-react'
 import { ClerkLogo } from '@/assets/clerk-logo'
 import { type SidebarData } from '../types'
@@ -63,10 +64,25 @@ export const sidebarData: SidebarData = {
           icon: Users,
         },
         {
-          title: 'Tasks',
-          url: '/tasks',
-          icon: ListTodo,
+          title: 'Information',
+          url: '/informations',
+          icon: Info,
         },
+        {
+          title: 'Push Notifications',
+          url: '/push-notifications',
+          icon: Bell,
+        },
+        // {
+        //   title: 'Tasks',
+        //   url: '/tasks',
+        //   icon: Bell,
+        // },
+        // {
+        //   title: 'Tasks',
+        //   url: '/tasks',
+        //   icon: ListTodo,
+        // },
         // {
         //   title: 'Apps',
         //   url: '/apps',
