@@ -1,4 +1,4 @@
-import { Download, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePushNotifications } from './notifications-provider'
 
