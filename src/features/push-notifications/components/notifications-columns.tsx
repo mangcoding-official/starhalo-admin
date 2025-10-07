@@ -90,14 +90,11 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
     ),
     cell: ({ row }) => {
       const s = String(row.getValue('status'))
+      type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
       const variant =
-        s === 'scheduled' ? 'outline'
-        // : s === 'sending'   ? 'secondary'
-        // : s === 'sent'      ? 'default'
-        // : s === 'failed'    ? 'destructive'
-        // : s === 'canceled'  ? 'secondary'
-        : 'secondary'
-      return <Badge variant={variant as any}>{s}</Badge>
+        (s === 'scheduled' ? 'outline'
+        : 'secondary') as BadgeVariant
+      return <Badge variant={variant}>{s}</Badge>
     },
   },
   {

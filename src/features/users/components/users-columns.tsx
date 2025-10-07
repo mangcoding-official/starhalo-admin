@@ -10,6 +10,23 @@ import { type User } from '../data/schema'
 import { EyeIcon } from 'lucide-react'
 import { useUsers } from './users-provider'
 
+function UsersViewButton({ user }: { user: User }) {
+  const { setOpen, setCurrentRow } = useUsers()
+
+  return (
+    <button
+      aria-label='View user'
+      className='p-1 pr-4 rounded hover:bg-muted/50 cursor-pointer'
+      onClick={() => {
+        setCurrentRow(user)
+        setOpen('view')
+      }}
+    >
+      <EyeIcon />
+    </button>
+  )
+}
+
 export const usersColumns: ColumnDef<User>[] = [
   {
     id: 'select',
@@ -135,23 +152,11 @@ export const usersColumns: ColumnDef<User>[] = [
   // },
   {
     id: 'actions',
-    cell: ({ row }) => {
-      const { setOpen, setCurrentRow } = useUsers()
-      return (
-        <div className='flex justify-end'>
-          <button
-            aria-label='View user'
-            className='p-1 pr-4 rounded hover:bg-muted/50 cursor-pointer'
-            onClick={() => {
-              setCurrentRow(row.original)
-              setOpen('view')
-            }}
-          >
-            <EyeIcon />
-          </button>
-        </div>
-      )
-    },
+    cell: ({ row }) => (
+      <div className='flex justify-end'>
+        <UsersViewButton user={row.original} />
+      </div>
+    ),
     meta: {
       className: cn('rounded-tr-[inherit]'),
     },

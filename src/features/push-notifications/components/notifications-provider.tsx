@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
-import { Notification } from '../data/schema'
+import type { Notification } from '../data/schema'
 
 type PushNotificationDialogType = 'create' | 'update' | 'delete' | 'import'
 

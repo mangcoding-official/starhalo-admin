@@ -57,8 +57,9 @@ export const informationsColumns: ColumnDef<Information>[] = [
         published: 'default',
         archived: 'destructive',
       }
-      const variant = (map[status] ?? 'secondary') as any
-      return <Badge variant={variant}>{status}</Badge>
+  type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
+  const variant = (map[status] ?? 'secondary') as BadgeVariant
+  return <Badge variant={variant}>{status}</Badge>
     },
   },
   {

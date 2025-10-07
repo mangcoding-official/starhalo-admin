@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Notification } from '../data/schema'
+import type { Notification } from '../data/schema'
 
 function toDatetimeLocal(value?: string | null) {
   if (!value) return ''

@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Information } from '../data/schema'
+import type { Information } from '../data/schema'
 
 const formSchema = z
   .object({
