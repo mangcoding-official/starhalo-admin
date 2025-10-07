@@ -36,7 +36,7 @@ export function Dashboard() {
         <div className='py-12'>
           <div className='max-w-3xl mx-auto text-center'>
             <h2 className='text-lg font-medium'>Welcome to dashboard admin</h2>
-            <p className='text-muted-foreground mt-2'>This area will show statistics later.</p>
+            {/* <p className='text-muted-foreground mt-2'>This area will show statistics later.</p> */}
           </div>
         </div>
       </Main>
