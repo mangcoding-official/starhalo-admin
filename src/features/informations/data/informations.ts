@@ -3,7 +3,8 @@ import { faker } from "@faker-js/faker";
 faker.seed(12345);
 
 export const informations = Array.from({ length: 50 }, () => {
-    const statuses = ["draft", "scheduled", "published"] as const;
+    // const statuses = ["draft"s, "scheduled", "published"] as const;
+    const statuses = ["draft", "published"] as const;
 
     return {
         id: `ID-${faker.number.int({ min: 1000, max: 9999 })}`,

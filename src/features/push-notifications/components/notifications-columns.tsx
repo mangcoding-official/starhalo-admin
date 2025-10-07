@@ -93,10 +93,10 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
       const s = String(row.getValue('status'))
       const variant =
         s === 'scheduled' ? 'outline'
-        : s === 'sending'   ? 'secondary'
-        : s === 'sent'      ? 'default'
-        : s === 'failed'    ? 'destructive'
-        : s === 'canceled'  ? 'secondary'
+        // : s === 'sending'   ? 'secondary'
+        // : s === 'sent'      ? 'default'
+        // : s === 'failed'    ? 'destructive'
+        // : s === 'canceled'  ? 'secondary'
         : 'secondary'
       return <Badge variant={variant as any}>{s}</Badge>
     },

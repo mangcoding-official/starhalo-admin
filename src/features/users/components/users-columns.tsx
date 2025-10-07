@@ -4,9 +4,11 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import { callTypes, roles } from '../data/data'
+import { callTypes } from '../data/data'
 import { type User } from '../data/schema'
-import { DataTableRowActions } from './data-table-row-actions'
+// ...existing row actions were intentionally omitted; using eye icon for view
+import { EyeIcon } from 'lucide-react'
+import { useUsers } from './users-provider'
 
 export const usersColumns: ColumnDef<User>[] = [
   {
@@ -52,18 +54,18 @@ export const usersColumns: ColumnDef<User>[] = [
     },
     enableHiding: false,
   },
-  {
-    id: 'fullName',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Name' />
-    ),
-    cell: ({ row }) => {
-      const { firstName, lastName } = row.original
-      const fullName = `${firstName} ${lastName}`
-      return <LongText className='max-w-36'>{fullName}</LongText>
-    },
-    meta: { className: 'w-36' },
-  },
+  // {
+  //   id: 'fullName',
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title='Name' />
+  //   ),
+  //   cell: ({ row }) => {
+  //     const { firstName, lastName } = row.original
+  //     const fullName = `${firstName} ${lastName}`
+  //     return <LongText className='max-w-36'>{fullName}</LongText>
+  //   },
+  //   meta: { className: 'w-36' },
+  // },
   {
     accessorKey: 'email',
     header: ({ column }) => (
@@ -73,14 +75,14 @@ export const usersColumns: ColumnDef<User>[] = [
       <div className='w-fit text-nowrap'>{row.getValue('email')}</div>
     ),
   },
-  {
-    accessorKey: 'phoneNumber',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Phone Number' />
-    ),
-    cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
-    enableSorting: false,
-  },
+  // {
+  //   accessorKey: 'phoneNumber',
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title='Phone Number' />
+  //   ),
+  //   cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
+  //   enableSorting: false,
+  // },
   {
     accessorKey: 'status',
     header: ({ column }) => (
@@ -103,36 +105,57 @@ export const usersColumns: ColumnDef<User>[] = [
     enableHiding: false,
     enableSorting: false,
   },
+  // {
+  //   accessorKey: 'role',
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title='Role' />
+  //   ),
+  //   cell: ({ row }) => {
+  //     const { role } = row.original
+  //     const userType = roles.find(({ value }) => value === role)
+
+  //     if (!userType) {
+  //       return null
+  //     }
+
+  //     return (
+  //       <div className='flex items-center gap-x-2'>
+  //         {userType.icon && (
+  //           <userType.icon size={16} className='text-muted-foreground' />
+  //         )}
+  //         <span className='text-sm capitalize'>{row.getValue('role')}</span>
+  //       </div>
+  //     )
+  //   },
+  //   filterFn: (row, id, value) => {
+  //     return value.includes(row.getValue(id))
+  //   },
+  //   enableSorting: false,
+  //   enableHiding: false,
+  // },
   {
-    accessorKey: 'role',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Role' />
-    ),
+    id: 'actions',
     cell: ({ row }) => {
-      const { role } = row.original
-      const userType = roles.find(({ value }) => value === role)
-
-      if (!userType) {
-        return null
-      }
-
+      const { setOpen, setCurrentRow } = useUsers()
       return (
-        <div className='flex items-center gap-x-2'>
-          {userType.icon && (
-            <userType.icon size={16} className='text-muted-foreground' />
-          )}
-          <span className='text-sm capitalize'>{row.getValue('role')}</span>
+        <div className='flex justify-end'>
+          <button
+            aria-label='View user'
+            className='p-1 pr-4 rounded hover:bg-muted/50 cursor-pointer'
+            onClick={() => {
+              setCurrentRow(row.original)
+              setOpen('view')
+            }}
+          >
+            <EyeIcon />
+          </button>
         </div>
       )
     },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+    meta: {
+      className: cn('rounded-tr-[inherit]'),
     },
     enableSorting: false,
     enableHiding: false,
-  },
-  {
-    id: 'actions',
-    cell: DataTableRowActions,
   },
 ]

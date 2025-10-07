@@ -95,10 +95,10 @@ export function PushNotificationsTable({ data }: DataTableProps) {
     const statusOptions = [
         { label: 'Draft', value: 'draft' },
         { label: 'Scheduled', value: 'scheduled' },
-        { label: 'Sending', value: 'sending' },
-        { label: 'Sent', value: 'sent' },
-        { label: 'Failed', value: 'failed' },
-        { label: 'Canceled', value: 'canceled' },
+        // { label: 'Sending', value: 'sending' },
+        // { label: 'Sent', value: 'sent' },
+        // { label: 'Failed', value: 'failed' },
+        // { label: 'Canceled', value: 'canceled' },
     ]
 
     return (

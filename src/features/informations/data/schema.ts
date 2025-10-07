@@ -5,7 +5,8 @@ export const InformationSchema = z.object({
   title: z.string(),
   description: z.string(),       
   publishDate: z.string(),       
-  status: z.enum(['draft', 'scheduled', 'published']),          
+  // status: z.enum(['draft', 'scheduled', 'published']),          
+  status: z.enum(['draft', 'published']),          
 })
 
 export type Information = z.infer<typeof InformationSchema>

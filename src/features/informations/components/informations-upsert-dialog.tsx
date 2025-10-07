@@ -201,7 +201,7 @@ export function InformationsUpsertDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        {/* <SelectItem value="scheduled">Scheduled</SelectItem> */}
                         <SelectItem value="published">Published</SelectItem>
                       </SelectContent>
                     </Select>

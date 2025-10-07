@@ -194,7 +194,7 @@ export function PushNotificationsUpsertDialog({
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="sent">Sent</SelectItem>
+                        {/* <SelectItem value="sent">Sent</SelectItem> */}
                       </SelectContent>
                     </Select>
                     <FormMessage />

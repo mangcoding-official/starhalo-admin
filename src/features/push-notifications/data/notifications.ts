@@ -3,7 +3,7 @@ import { faker } from "@faker-js/faker";
 faker.seed(12345);
 
 export const notifications = Array.from({ length: 50 }, () => {
-    const statuses = ['draft','scheduled','sending','sent','failed','canceled'] as const;
+    const statuses = ['draft','scheduled'] as const;
     const targets = ['all','platform','user','segment','role'] as const;
     const priorities = ['normal','high'] as const;
 
@@ -15,7 +15,8 @@ export const notifications = Array.from({ length: 50 }, () => {
         target: faker.helpers.arrayElement(targets),
         criteria: null,
         priority: faker.helpers.arrayElement(priorities),
-        scheduleDate: faker.helpers.maybe(() => faker.date.future().toISOString()),
+        // scheduleDate: faker.helpers.maybe(() => faker.date.future().toISOString()),
+        scheduleDate: faker.date.past().toISOString(),
         status: faker.helpers.arrayElement(statuses),
         sentAt: null,
         createdBy: `User-${faker.number.int({ min: 1, max: 10 })}`,

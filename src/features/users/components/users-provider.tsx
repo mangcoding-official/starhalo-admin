@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import { type User } from '../data/schema'
 
-type UsersDialogType = 'invite' | 'add' | 'edit' | 'delete'
+type UsersDialogType = 'invite' | 'add' | 'edit' | 'delete' | 'view'
 
 type UsersContextType = {
   open: UsersDialogType | null
@@ -18,9 +18,9 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
   const [currentRow, setCurrentRow] = useState<User | null>(null)
 
   return (
-    <UsersContext value={{ open, setOpen, currentRow, setCurrentRow }}>
+    <UsersContext.Provider value={{ open, setOpen, currentRow, setCurrentRow }}>
       {children}
-    </UsersContext>
+    </UsersContext.Provider>
   )
 }
 

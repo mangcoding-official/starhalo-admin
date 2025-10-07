@@ -37,7 +37,7 @@ export function ProfileDropdown() {
               </p>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
+          {/* <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
               <Link to='/settings'>
@@ -58,7 +58,7 @@ export function ProfileDropdown() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>New Team</DropdownMenuItem>
-          </DropdownMenuGroup>
+          </DropdownMenuGroup> */}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setOpen(true)}>
             Sign out
