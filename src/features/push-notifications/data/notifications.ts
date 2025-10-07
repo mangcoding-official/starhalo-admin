@@ -3,7 +3,7 @@ import { faker } from "@faker-js/faker";
 faker.seed(12345);
 
 export const notifications = Array.from({ length: 50 }, () => {
-    const statuses = ['draft','scheduled'] as const;
+    const statuses = ['draft','publish'] as const;
     const targets = ['all','platform','user','segment','role'] as const;
     const priorities = ['normal','high'] as const;
 
