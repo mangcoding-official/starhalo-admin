@@ -1,8 +1,8 @@
 import { type ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { format } from 'date-fns'
-import { id as localeID } from 'date-fns/locale'
+// import { format } from 'date-fns'
+// import { id as localeID } from 'date-fns/locale'
 import type { Notification } from '../data/schema' 
 import { DataTableColumnHeader } from '@/components/data-table'
 import { DataTableRowActions } from './data-table-row-actions'
@@ -66,23 +66,22 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
       return <span className="text-muted-foreground">{truncated}</span>
     },
   },
-
-  {
-    accessorKey: 'scheduleDate',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Scheduled Date" />
-    ),
-    cell: ({ row }) => {
-      const v = row.getValue('scheduleDate') as string | null | undefined
-      if (!v) return <span className="text-muted-foreground">—</span>
-      try {
-        return <span>{format(new Date(v), 'dd MMM yyyy HH:mm', { locale: localeID })}</span>
-      } catch {
-        return <span className="text-muted-foreground">{v}</span>
-      }
-    },
-    sortingFn: 'datetime',
-  },
+  // {
+  //   accessorKey: 'scheduleDate',
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Scheduled Date" />
+  //   ),
+  //   cell: ({ row }) => {
+  //     const v = row.getValue('scheduleDate') as string | null | undefined
+  //     if (!v) return <span className="text-muted-foreground">—</span>
+  //     try {
+  //       return <span>{format(new Date(v), 'dd MMM yyyy HH:mm', { locale: localeID })}</span>
+  //     } catch {
+  //       return <span className="text-muted-foreground">{v}</span>
+  //     }
+  //   },
+  //   sortingFn: 'datetime',
+  // },
 
   {
     accessorKey: 'status',

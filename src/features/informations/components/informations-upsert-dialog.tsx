@@ -122,7 +122,7 @@ export function InformationsUpsertDialog({
     form.reset() 
   }
 
-  const status = form.watch('status')
+  // const status = form.watch('status')
   const { isSubmitting } = form.formState
 
   return (
@@ -210,7 +210,7 @@ export function InformationsUpsertDialog({
                 )}
               />
 
-              {status !== 'draft' && (
+              {/* {status !== 'draft' && (
                 <FormField
                   control={form.control}
                   name="publishDate"
@@ -224,7 +224,7 @@ export function InformationsUpsertDialog({
                     </FormItem>
                   )}
                 />
-              )}
+              )} */}
               {/* {status === 'archived' && (
                 <FormField
                   control={form.control}

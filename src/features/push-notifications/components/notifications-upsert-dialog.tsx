@@ -107,7 +107,7 @@ export function PushNotificationsUpsertDialog({
     form.reset()
   }
 
-  const status = form.watch('status')
+  // const status = form.watch('status')
   const { isSubmitting } = form.formState
 
   return (
@@ -193,7 +193,7 @@ export function PushNotificationsUpsertDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="scheduled">Publish</SelectItem>
                         {/* <SelectItem value="sent">Sent</SelectItem> */}
                       </SelectContent>
                     </Select>
@@ -202,7 +202,7 @@ export function PushNotificationsUpsertDialog({
                 )}
               />
 
-              {status !== 'draft' && (
+              {/* {status !== 'draft' && (
                 <FormField
                   control={form.control}
                   name="scheduleAt"
@@ -216,7 +216,7 @@ export function PushNotificationsUpsertDialog({
                     </FormItem>
                   )}
                 />
-              )}
+              )} */}
             </div>
           </form>
         </Form>
