@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { z } from 'zod'
-import { useForm } from 'react-hook-form'
+import { useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
+import { AxiosError } from 'axios'
 import { Loader2, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
-// import { IconFacebook, IconGithub } from '@/assets/brand-icons'
-import { useAuthStore } from '@/stores/auth-store'
-import { sleep, cn } from '@/lib/utils'
+import { useAuthStore, type AuthUser } from '@/stores/auth-store'
+import { cn } from '@/lib/utils'
+import { apiClient } from '@/lib/api-client'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -19,6 +20,90 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+
+const ADMIN_LOGIN_URL = '/api/auth/admin/login'
+
+type ApiErrorMap = Record<string, string | string[]>
+
+interface AdminLoginData {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  expires_in: number
+  user: AuthUser
+}
+
+type AdminLoginApiResponse = {
+  message?: string
+  data?: AdminLoginData | boolean
+  errors?: ApiErrorMap
+  [key: string]: unknown
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function getLoginData(payload: AdminLoginApiResponse | null): AdminLoginData | null {
+  if (!payload) return null
+  if (!payload.data || typeof payload.data === 'boolean') return null
+  if (!isRecord(payload.data)) return null
+
+  const maybeData = payload.data
+
+  if (
+    typeof maybeData.access_token !== 'string' ||
+    typeof maybeData.refresh_token !== 'string' ||
+    typeof maybeData.token_type !== 'string' ||
+    typeof maybeData.expires_in !== 'number' ||
+    !isRecord(maybeData.user)
+  ) {
+    return null
+  }
+
+  return {
+    access_token: maybeData.access_token,
+    refresh_token: maybeData.refresh_token,
+    token_type: maybeData.token_type,
+    expires_in: maybeData.expires_in,
+    user: maybeData.user as AuthUser,
+  }
+}
+
+function getMessageFromResponse(payload: AdminLoginApiResponse | null) {
+  if (!payload) return undefined
+  if (typeof payload.message === 'string' && payload.message.trim().length > 0) {
+    return payload.message
+  }
+
+  return undefined
+}
+
+function applyFieldErrors(
+  form: UseFormReturn<z.infer<typeof formSchema>>,
+  payload: AdminLoginApiResponse | null,
+  fallbackMessage?: string
+) {
+  const errors = payload?.errors
+  if (!errors || typeof errors !== 'object') return
+
+  Object.entries(errors as ApiErrorMap).forEach(([field, value]) => {
+    const message =
+      typeof value === 'string'
+        ? value
+        : Array.isArray(value)
+          ? value.filter((item): item is string => typeof item === 'string').join(', ')
+          : fallbackMessage
+
+    if (!message) return
+
+    if (field in form.getValues()) {
+      form.setError(field as 'email' | 'password', { message })
+    } else {
+      form.setError('root', { message })
+    }
+  })
+}
 
 const formSchema = z.object({
   email: z.email({
@@ -51,34 +136,68 @@ export function UserAuthForm({
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
+    form.clearErrors()
 
-    // Mock successful authentication
-    const mockUser = {
-      accountNo: 'ACC001',
-      email: data.email,
-      role: ['user'],
-      exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
+    try {
+      const { data: payload } = await apiClient.post<AdminLoginApiResponse>(
+        ADMIN_LOGIN_URL,
+        data
+      )
+
+      const loginData = getLoginData(payload)
+
+      if (!loginData) {
+        const message =
+          getMessageFromResponse(payload) ?? 'Unable to sign in. Please try again.'
+        applyFieldErrors(form, payload, message)
+        if (!form.formState.errors.root) {
+          form.setError('root', { message })
+        }
+        throw new Error(message)
+      }
+
+      const expiresAt =
+        Number.isFinite(loginData.expires_in) && loginData.expires_in > 0
+          ? Date.now() + loginData.expires_in * 1000
+          : null
+
+      auth.setSession({
+        accessToken: loginData.access_token,
+        refreshToken: loginData.refresh_token,
+        tokenType: loginData.token_type,
+        expiresAt,
+      })
+
+      auth.setUser(loginData.user)
+
+      const successMessage =
+        getMessageFromResponse(payload) ?? 'Login successfully'
+      toast.success(successMessage)
+
+      const targetPath = redirectTo || '/'
+      navigate({ to: targetPath, replace: true })
+    } catch (error) {
+      let message = 'Unable to sign in. Please try again.'
+
+      if (error instanceof AxiosError) {
+        const payload = (error.response?.data ??
+          null) as AdminLoginApiResponse | null
+        applyFieldErrors(form, payload, message)
+        message = getMessageFromResponse(payload) ?? message
+      } else if (error instanceof Error && error.message) {
+        message = error.message
+      }
+
+      if (!form.formState.errors.root && message) {
+        form.setError('root', { message })
+      }
+
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
     }
-
-    toast.promise(sleep(2000), {
-      loading: 'Signing in...',
-      success: () => {
-        setIsLoading(false)
-
-        // Set user and access token
-        auth.setUser(mockUser)
-        auth.setAccessToken('mock-access-token')
-
-        // Redirect to the stored location or default to dashboard
-        const targetPath = redirectTo || '/'
-        navigate({ to: targetPath, replace: true })
-
-        return `Welcome back, ${data.email}!`
-      },
-      error: 'Error',
-    })
   }
 
   return (
@@ -111,19 +230,24 @@ export function UserAuthForm({
                 <PasswordInput placeholder='********' {...field} />
               </FormControl>
               <FormMessage />
-              <Link
+              {/* <Link
                 to='/forgot-password'
                 className='text-muted-foreground absolute end-0 -top-0.5 text-sm font-medium hover:opacity-75'
               >
                 Forgot password?
-              </Link>
+              </Link> */}
             </FormItem>
           )}
         />
-        <Button className='mt-2' disabled={isLoading}>
+        <Button className='mt-2' disabled={isLoading} type='submit'>
           {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
           Sign in
         </Button>
+        {form.formState.errors.root?.message ? (
+          <p className='text-destructive text-sm font-medium'>
+            {form.formState.errors.root.message}
+          </p>
+        ) : null}
 
         {/* <div className='relative my-2'>
           <div className='absolute inset-0 flex items-center'>

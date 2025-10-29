@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   ColumnFiltersState,
   OnChangeFn,
@@ -110,27 +110,64 @@ export function useTableUrlState(
   const [columnFilters, setColumnFilters] =
     useState<ColumnFiltersState>(initialColumnFilters)
 
-  const pagination: PaginationState = useMemo(() => {
-    const rawPage = (search as SearchRecord)[pageKey]
-    const rawPageSize = (search as SearchRecord)[pageSizeKey]
-    const pageNum = typeof rawPage === 'number' ? rawPage : defaultPage
-    const pageSizeNum =
-      typeof rawPageSize === 'number' ? rawPageSize : defaultPageSize
-    return { pageIndex: Math.max(0, pageNum - 1), pageSize: pageSizeNum }
-  }, [search, pageKey, pageSizeKey, defaultPage, defaultPageSize])
+  const derivePagination = useCallback(
+    (source: SearchRecord): PaginationState => {
+      const rawPage = source[pageKey]
+      const rawPageSize = source[pageSizeKey]
+      const pageNum =
+        typeof rawPage === 'number' && Number.isFinite(rawPage)
+          ? rawPage
+          : defaultPage
+      const pageSizeNum =
+        typeof rawPageSize === 'number' && Number.isFinite(rawPageSize)
+          ? rawPageSize
+          : defaultPageSize
+      return {
+        pageIndex: Math.max(0, pageNum - 1),
+        pageSize: pageSizeNum,
+      }
+    },
+    [pageKey, pageSizeKey, defaultPage, defaultPageSize]
+  )
+
+  const [pagination, setPagination] = useState<PaginationState>(() =>
+    derivePagination(search)
+  )
+
+  useEffect(() => {
+    const next = derivePagination(search)
+    setPagination((prev) => {
+      if (
+        prev.pageIndex === next.pageIndex &&
+        prev.pageSize === next.pageSize
+      ) {
+        return prev
+      }
+      return next
+    })
+  }, [derivePagination, search])
+
+  const updateSearchWithPagination = useCallback(
+    (next: PaginationState) => {
+      const nextPage = next.pageIndex + 1
+      const nextPageSize = next.pageSize
+      navigate({
+        search: (prev) => ({
+          ...(prev as SearchRecord),
+          [pageKey]: nextPage <= defaultPage ? undefined : nextPage,
+          [pageSizeKey]:
+            nextPageSize === defaultPageSize ? undefined : nextPageSize,
+        }),
+      })
+    },
+    [navigate, pageKey, pageSizeKey, defaultPage, defaultPageSize]
+  )
 
   const onPaginationChange: OnChangeFn<PaginationState> = (updater) => {
-    const next = typeof updater === 'function' ? updater(pagination) : updater
-    const nextPage = next.pageIndex + 1
-    const nextPageSize = next.pageSize
-    navigate({
-      search: (prev) => ({
-        ...(prev as SearchRecord),
-        [pageKey]: nextPage <= defaultPage ? undefined : nextPage,
-        [pageSizeKey]:
-          nextPageSize === defaultPageSize ? undefined : nextPageSize,
-      }),
-    })
+    const next =
+      typeof updater === 'function' ? updater(pagination) : updater
+    setPagination(next)
+    updateSearchWithPagination(next)
   }
 
   const [globalFilter, setGlobalFilter] = useState<string | undefined>(() => {
@@ -194,17 +231,23 @@ export function useTableUrlState(
     pageCount: number,
     opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
   ) => {
-    const currentPage = (search as SearchRecord)[pageKey]
-    const pageNum = typeof currentPage === 'number' ? currentPage : defaultPage
-    if (pageCount > 0 && pageNum > pageCount) {
-      navigate({
-        replace: true,
-        search: (prev) => ({
-          ...(prev as SearchRecord),
-          [pageKey]: opts.resetTo === 'last' ? pageCount : undefined,
-        }),
-      })
-    }
+    if (pageCount <= 0) return
+
+    setPagination((prev) => {
+      const maxPageIndex = Math.max(0, pageCount - 1)
+      if (prev.pageIndex <= maxPageIndex) {
+        return prev
+      }
+
+      const nextPageIndex =
+        opts.resetTo === 'last' ? maxPageIndex : 0
+      const next: PaginationState = {
+        pageIndex: nextPageIndex,
+        pageSize: prev.pageSize,
+      }
+      updateSearchWithPagination(next)
+      return next
+    })
   }
 
   return {

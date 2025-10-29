@@ -22,7 +22,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -30,12 +29,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { WysiwygEditor } from '@/components/wysiwyg-editor'
 import type { Information } from '../data/schema'
+
+function isEmptyHtml(value: string) {
+  const text = value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .trim()
+  return text.length === 0
+}
 
 const formSchema = z
   .object({
     title: z.string().min(3, 'Title must be at least 3 characters'),
-    description: z.string().min(1, 'Description is required'),
+    description: z
+      .string()
+      .refine((val) => !isEmptyHtml(val), 'Description is required'),
     status: z.enum(['draft', 'scheduled', 'published', 'archived']),
     publishDate: z.string().optional(),
   })
@@ -107,7 +118,7 @@ export function InformationsUpsertDialog({
         publishDate: '',
       })
     }
-  }, [open, initialValues])
+  }, [form, initialValues, open])
 
   const handleSubmit = async (values: InformationFormValues) => {
     if (onSubmit) {
@@ -170,12 +181,13 @@ export function InformationsUpsertDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Rich Text)</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea
+                    <WysiwygEditor
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
                       placeholder="Write your announcement here..."
-                      className="min-h-[120px]"
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />

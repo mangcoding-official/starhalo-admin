@@ -7,7 +7,6 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
@@ -21,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 // import { roles } from '../data/data'
 import { type User } from '../data/schema'
@@ -36,14 +36,31 @@ declare module '@tanstack/react-table' {
 
 type DataTableProps = {
   data: User[]
+  total?: number
+  pageCount?: number
+  isLoading?: boolean
+  isFetching?: boolean
+  sorting?: SortingState
+  onSortingChange?: (
+    updater: SortingState | ((state: SortingState) => SortingState)
+  ) => void
   search: Record<string, unknown>
   navigate: NavigateFn
 }
 
-export function UsersTable({ data, search, navigate }: DataTableProps) {
+export function UsersTable({
+  data,
+  total = data.length,
+  pageCount = 1,
+  isLoading = false,
+  isFetching = false,
+  sorting = [],
+  onSortingChange,
+  search,
+  navigate,
+}: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-  const [sorting, setSorting] = useState<SortingState>([])
 
   const {
     columnFilters,
@@ -58,8 +75,6 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
     globalFilter: { enabled: false },
     columnFilters: [
       { columnId: 'username', searchKey: 'username', type: 'string' },
-      { columnId: 'status', searchKey: 'status', type: 'array' },
-      { columnId: 'role', searchKey: 'role', type: 'array' },
     ],
   })
 
@@ -77,19 +92,33 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
     onPaginationChange,
     onColumnFiltersChange,
     onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
+    onSortingChange: onSortingChange ?? (() => {}),
     onColumnVisibilityChange: setColumnVisibility,
-    getPaginationRowModel: getPaginationRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    manualPagination: true,
+    pageCount,
+    manualSorting: true,
+    autoResetPageIndex: false,
   })
 
   useEffect(() => {
-    ensurePageInRange(table.getPageCount())
-  }, [table, ensurePageInRange])
+    if (!isLoading && !isFetching) {
+      ensurePageInRange(pageCount)
+    }
+  }, [ensurePageInRange, pageCount, isFetching, isLoading])
+
+  const visibleColumns = table.getVisibleLeafColumns()
+  const visibleColumnCount = visibleColumns.length || columns.length
+  const skeletonRowCount = Math.min(
+    table.getState().pagination?.pageSize ?? 10,
+    10
+  )
+
+  const isTableEmpty = total === 0 && !isLoading && !isFetching
 
   return (
     <div className='space-y-4 max-sm:has-[div[role="toolbar"]]:mb-16'>
@@ -97,16 +126,7 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
         table={table}
         searchPlaceholder='Filter users...'
         searchKey='username'
-        filters={[
-          {
-            columnId: 'status',
-            title: 'Status',
-            options: [
-              { label: 'Active', value: 'active' },
-              { label: 'Inactive', value: 'inactive' },
-            ],
-          },
-        ]}
+        filters={[]}
       />
       <div className='overflow-hidden rounded-md border'>
         <Table>
@@ -136,7 +156,41 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
+                <TableRow key={`loading-${rowIndex}`} className='group/row'>
+                  {visibleColumns.map((column) => {
+                    const cellClassName = cn(
+                      'bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted',
+                      column.columnDef.meta?.className ?? ''
+                    )
+
+                    const skeleton =
+                      column.id === 'select' ? (
+                        <div className='flex items-center'>
+                          <Skeleton className='h-4 w-4 rounded-sm' />
+                        </div>
+                      ) : column.id === 'actions' ? (
+                        <div className='flex justify-end'>
+                          <Skeleton className='h-5 w-5 rounded-full' />
+                        </div>
+                      ) : (
+                        <Skeleton className='h-4 w-full max-w-[200px]' />
+                      )
+
+                    return (
+                      <TableCell
+                        key={column.id}
+                        className={cellClassName}
+                        aria-hidden='true'
+                      >
+                        {skeleton}
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -162,10 +216,10 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={visibleColumnCount}
                   className='h-24 text-center'
                 >
-                  No results.
+                  {isTableEmpty ? 'No users found.' : 'No results.'}
                 </TableCell>
               </TableRow>
             )}

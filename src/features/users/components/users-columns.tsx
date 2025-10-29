@@ -1,40 +1,49 @@
-import { type ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef, type Row } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import { callTypes } from '../data/data'
 import { type User } from '../data/schema'
-// ...existing row actions were intentionally omitted; using eye icon for view
 import { EyeIcon } from 'lucide-react'
 import { useUsers } from './users-provider'
+import { format } from 'date-fns'
+
+// eslint-disable-next-line react-refresh/only-export-components
+function ViewActionCell({ row }: { row: Row<User> }) {
+  const { setOpen, setCurrentRow } = useUsers()
+  return (
+    <div className='flex justify-end'>
+      <button
+        aria-label='View user'
+        className='p-1 pr-4 rounded hover:bg-muted/50 cursor-pointer'
+        onClick={() => {
+          setCurrentRow(row.original)
+          setOpen('view')
+        }}
+      >
+        <EyeIcon />
+      </button>
+    </div>
+  )
+}
 
 export const usersColumns: ColumnDef<User>[] = [
   {
     id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Select all'
-        className='translate-y-[2px]'
-      />
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='No' />
     ),
     meta: {
       className: cn('sticky md:table-cell start-0 z-10 rounded-tl-[inherit]'),
     },
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Select row'
-        className='translate-y-[2px]'
-      />
-    ),
+    cell: ({ row }) => {
+      const serial = row.index + 1; 
+      return (
+        <span className="whitespace-nowrap text-sm text-muted-foreground">
+          {serial}
+        </span>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },
@@ -44,7 +53,7 @@ export const usersColumns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title='Username' />
     ),
     cell: ({ row }) => (
-      <LongText className='max-w-36 ps-3'>{row.getValue('username')}</LongText>
+      <LongText className='max-w-36'>{row.getValue('username')}</LongText>
     ),
     meta: {
       className: cn(
@@ -75,6 +84,25 @@ export const usersColumns: ColumnDef<User>[] = [
       <div className='w-fit text-nowrap'>{row.getValue('email')}</div>
     ),
   },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Joined' />
+    ),
+    cell: ({ row }) => {
+      const date = row.original.createdAt
+      const formatted =
+        date instanceof Date && !Number.isNaN(date.getTime())
+          ? format(date, 'dd MMM yyyy')
+          : '-'
+      return (
+        <span className='whitespace-nowrap text-sm text-muted-foreground'>
+          {formatted}
+        </span>
+      )
+    },
+    enableHiding: false,
+  },
   // {
   //   accessorKey: 'phoneNumber',
   //   header: ({ column }) => (
@@ -83,28 +111,6 @@ export const usersColumns: ColumnDef<User>[] = [
   //   cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
   //   enableSorting: false,
   // },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Status' />
-    ),
-    cell: ({ row }) => {
-      const { status } = row.original
-      const badgeColor = callTypes.get(status)
-      return (
-        <div className='flex space-x-2'>
-          <Badge variant='outline' className={cn('capitalize', badgeColor)}>
-            {row.getValue('status')}
-          </Badge>
-        </div>
-      )
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
-    },
-    enableHiding: false,
-    enableSorting: false,
-  },
   // {
   //   accessorKey: 'role',
   //   header: ({ column }) => (
@@ -135,23 +141,7 @@ export const usersColumns: ColumnDef<User>[] = [
   // },
   {
     id: 'actions',
-    cell: ({ row }) => {
-      const { setOpen, setCurrentRow } = useUsers()
-      return (
-        <div className='flex justify-end'>
-          <button
-            aria-label='View user'
-            className='p-1 pr-4 rounded hover:bg-muted/50 cursor-pointer'
-            onClick={() => {
-              setCurrentRow(row.original)
-              setOpen('view')
-            }}
-          >
-            <EyeIcon />
-          </button>
-        </div>
-      )
-    },
+    cell: ({ row }) => <ViewActionCell row={row} />,
     meta: {
       className: cn('rounded-tr-[inherit]'),
     },
