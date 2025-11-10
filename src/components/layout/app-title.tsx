@@ -8,7 +8,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Button } from '../ui/button'
-import { useCurrentUser } from '@/features/auth/hooks/use-current-user'
 
 export function AppTitle() {
   const { setOpenMobile } = useSidebar()

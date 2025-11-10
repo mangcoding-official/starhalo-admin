@@ -1,5 +1,4 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'

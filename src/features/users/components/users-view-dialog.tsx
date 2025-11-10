@@ -95,14 +95,6 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
   const detail = data
 
-  const createdAt =
-    detail?.createdAt && !Number.isNaN(detail.createdAt.getTime())
-      ? format(detail.createdAt, 'dd MMM yyyy HH:mm')
-      : '-'
-  const updatedAt =
-    detail?.updatedAt && !Number.isNaN(detail.updatedAt.getTime())
-      ? format(detail.updatedAt, 'dd MMM yyyy HH:mm')
-      : '-'
   const emailVerified =
     detail?.emailVerifiedAt && !Number.isNaN(detail.emailVerifiedAt.getTime())
       ? format(detail.emailVerifiedAt, 'dd MMM yyyy HH:mm')
@@ -311,13 +303,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                     endAngle={-45}
                   >
                     <PolarAngleAxis type='number' domain={[0, 100]} tick={false} />
-                    <RadialBar
-                      dataKey='value'
-                      clockWise
-                      cornerRadius={999}
-                      background={{ fill: '#636363ff', cornerRadius: 999 }}
-                      fill={hydrationOverview.color}
-                    />
+                    <RadialBar dataKey='value' fill={hydrationOverview.color} />
                   </RadialBarChart>
                 </ResponsiveContainer>
                 <div className='absolute flex flex-col items-center'>

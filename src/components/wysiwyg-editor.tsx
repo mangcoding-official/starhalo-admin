@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type QuillType from 'quill'
-import type { RangeStatic, ToolbarOptions } from 'quill'
+import type { Range } from 'quill'
+import type Toolbar from 'quill/modules/toolbar'
+import type { ToolbarConfig } from 'quill/modules/toolbar'
 import 'quill/dist/quill.snow.css'
 import { cn } from '@/lib/utils'
 
@@ -13,7 +15,7 @@ export interface WysiwygEditorProps {
   onBlur?: () => void
 }
 
-const TOOLBAR_OPTIONS: ToolbarOptions = [
+const TOOLBAR_OPTIONS: ToolbarConfig = [
   [{ header: [1, 2, 3, false] }],
   ['bold', 'italic', 'underline', 'strike'],
   [{ color: [] }, { background: [] }],
@@ -59,7 +61,9 @@ export function WysiwygEditor({
   const quillRef = useRef<QuillType | null>(null)
   const latestHtmlRef = useRef<string>(sanitizeHtml(value))
   const textChangeHandlerRef = useRef<(() => void) | null>(null)
-  const selectionChangeHandlerRef = useRef<((range: RangeStatic | null) => void) | null>(null)
+  const selectionChangeHandlerRef = useRef<
+    ((range: Range | null, oldRange: Range | null, source: unknown) => void) | null
+  >(null)
   const onChangeRef = useRef(onChange)
   const onBlurRef = useRef(onBlur)
   const disabledRef = useRef(Boolean(disabled))
@@ -135,21 +139,24 @@ export function WysiwygEditor({
         onChangeRef.current(html)
       }
 
-      const handleSelectionChange = (range: RangeStatic | null) => {
+      const handleSelectionChange = (range: Range | null) => {
         if (!range) {
           onBlurRef.current?.()
         }
       }
 
       quill.on('text-change', handleTextChange)
-      quill.on('selection-change', handleSelectionChange)
+      const selectionChangeHandler = (
+        range: Range | null,
+        _oldRange: Range | null,
+        _source: unknown
+      ) => handleSelectionChange(range)
+      quill.on('selection-change', selectionChangeHandler)
       textChangeHandlerRef.current = handleTextChange
-      selectionChangeHandlerRef.current = handleSelectionChange
+      selectionChangeHandlerRef.current = selectionChangeHandler
 
-      const toolbar = quill.getModule('toolbar')
-      if (toolbar && typeof toolbar === 'object' && 'addHandler' in toolbar) {
-        toolbar.addHandler('image', () => handleImageUpload(quill))
-      }
+      const toolbar = quill.getModule('toolbar') as Toolbar | undefined
+      toolbar?.addHandler('image', () => handleImageUpload(quill))
     }
 
     void initialize()

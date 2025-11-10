@@ -1,5 +1,4 @@
 import {
-  LayoutDashboard,
   Bell,
   Users,
   AudioWaveform,
