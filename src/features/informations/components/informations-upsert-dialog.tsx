@@ -41,44 +41,15 @@ function isEmptyHtml(value: string) {
   return text.length === 0
 }
 
-const formSchema = z
-  .object({
-    title: z.string().min(3, 'Title must be at least 3 characters'),
-    description: z
-      .string()
-      .refine((val) => !isEmptyHtml(val), 'Description is required'),
-    status: z.enum(['draft', 'scheduled', 'published', 'archived']),
-    publishDate: z.string().optional(),
-  })
-  .superRefine((v, ctx) => {
-    if (v.status === 'scheduled' && !v.publishDate) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['publishDate'],
-        message: 'Publish date is required when status is Scheduled',
-      })
-    }
-  })
+const formSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters'),
+  content: z
+    .string()
+    .refine((val) => !isEmptyHtml(val), 'Content is required'),
+  status: z.enum(['draft', 'scheduled', 'published', 'archived']),
+})
 
 export type InformationFormValues = z.infer<typeof formSchema>
-
-function toDatetimeLocal(value?: string | null) {
-  if (!value) return ''
-  try {
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return value
-    const d = new Date(value)
-    if (isNaN(d.getTime())) return ''
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const yyyy = d.getFullYear()
-    const mm = pad(d.getMonth() + 1)
-    const dd = pad(d.getDate())
-    const hh = pad(d.getHours())
-    const mi = pad(d.getMinutes())
-    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`
-  } catch {
-    return ''
-  }
-}
 
 type UpsertDialogProps = {
   open: boolean
@@ -95,12 +66,14 @@ export function InformationsUpsertDialog({
 }: UpsertDialogProps) {
   const mode: 'create' | 'update' = currentRow ? 'update' : 'create'
 
-  const initialValues = useMemo<InformationFormValues>(() => ({
-    title: currentRow?.title ?? '',
-    description: currentRow?.description ?? '',
-    status: currentRow?.status ?? 'draft',
-    publishDate: toDatetimeLocal(currentRow?.publishDate ?? ''),
-  }), [currentRow])
+  const initialValues = useMemo<InformationFormValues>(
+    () => ({
+      title: currentRow?.title ?? '',
+      content: currentRow?.content ?? '',
+      status: currentRow?.status ?? 'draft',
+    }),
+    [currentRow]
+  )
 
   const form = useForm<InformationFormValues>({
     resolver: zodResolver(formSchema),
@@ -113,9 +86,8 @@ export function InformationsUpsertDialog({
     } else {
       form.reset({
         title: '',
-        description: '',
+        content: '',
         status: 'draft',
-        publishDate: '',
       })
     }
   }, [form, initialValues, open])
@@ -178,10 +150,10 @@ export function InformationsUpsertDialog({
 
             <FormField
               control={form.control}
-              name="description"
+              name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Content</FormLabel>
                   <FormControl>
                     <WysiwygEditor
                       value={field.value ?? ''}
@@ -195,64 +167,33 @@ export function InformationsUpsertDialog({
               )}
             />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        {/* <SelectItem value="scheduled">Scheduled</SelectItem> */}
-                        <SelectItem value="published">Published</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* {status !== 'draft' && (
-                <FormField
-                  control={form.control}
-                  name="publishDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Publish Date</FormLabel>
-                      <FormControl>
-                        <Input type="datetime-local" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )} */}
-              {/* {status === 'archived' && (
-                <FormField
-                  control={form.control}
-                  name="archiveDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Archive Date</FormLabel>
-                      <FormControl>
-                        <Input type="datetime-local" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )} */}
-            </div>
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      {/* <SelectItem value="scheduled" disabled>
+                        Scheduled (coming soon)
+                      </SelectItem> */}
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="archived">
+                        Archived
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
 

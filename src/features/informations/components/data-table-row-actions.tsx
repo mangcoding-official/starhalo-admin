@@ -10,7 +10,7 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { InformationSchema } from '../data/schema'
+import { informationSchema } from '../data/schema'
 import { useInformations } from './informations-provider'
 
 
@@ -21,7 +21,7 @@ type DataTableRowActionsProps<TData> = {
 export function DataTableRowActions<TData>({
     row,
 }: DataTableRowActionsProps<TData>) {
-    const task = InformationSchema.parse(row.original)
+    const task = informationSchema.parse(row.original)
 
     const { setOpen, setCurrentRow } = useInformations()
 

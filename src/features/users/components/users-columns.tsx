@@ -8,7 +8,6 @@ import { EyeIcon } from 'lucide-react'
 import { useUsers } from './users-provider'
 import { format } from 'date-fns'
 
-// eslint-disable-next-line react-refresh/only-export-components
 function ViewActionCell({ row }: { row: Row<User> }) {
   const { setOpen, setCurrentRow } = useUsers()
   return (
@@ -49,9 +48,9 @@ export const usersColumns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'username',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Username' />
-    ),
+    // header: ({ column }) => (
+    //   <DataTableColumnHeader column={column} title='Username' />
+    // ),
     cell: ({ row }) => (
       <LongText className='max-w-36'>{row.getValue('username')}</LongText>
     ),
@@ -77,9 +76,9 @@ export const usersColumns: ColumnDef<User>[] = [
   // },
   {
     accessorKey: 'email',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Email' />
-    ),
+    // header: ({ column }) => (
+    //   <DataTableColumnHeader column={column} title='Email' />
+    // ),
     cell: ({ row }) => (
       <div className='w-fit text-nowrap'>{row.getValue('email')}</div>
     ),

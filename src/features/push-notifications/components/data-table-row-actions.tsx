@@ -37,7 +37,7 @@ export function DataTableRowActions<TData>({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' className='w-[160px]'>
-                <DropdownMenuItem
+                {/* <DropdownMenuItem
                     onClick={() => {
                         setCurrentRow(task)
                         setOpen('update')
@@ -47,8 +47,8 @@ export function DataTableRowActions<TData>({
                     <DropdownMenuShortcut>
                         <Edit size={16} />
                     </DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                </DropdownMenuItem> */}
+                {/* <DropdownMenuSeparator /> */}
                 <DropdownMenuItem
                     onClick={() => {
                         setCurrentRow(task)

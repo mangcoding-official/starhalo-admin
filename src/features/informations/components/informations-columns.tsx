@@ -8,29 +8,29 @@ import { DataTableRowActions } from './data-table-row-actions'
 import { DataTableColumnHeader } from '@/components/data-table'
 
 export const informationsColumns: ColumnDef<Information>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-    size: 32,
-  },
+  // {
+  //   id: 'select',
+  //   header: ({ table }) => (
+  //     <Checkbox
+  //       checked={
+  //         table.getIsAllPageRowsSelected() ||
+  //         (table.getIsSomePageRowsSelected() && 'indeterminate')
+  //       }
+  //       onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+  //       aria-label="Select all"
+  //     />
+  //   ),
+  //   cell: ({ row }) => (
+  //     <Checkbox
+  //       checked={row.getIsSelected()}
+  //       onCheckedChange={(value) => row.toggleSelected(!!value)}
+  //       aria-label="Select row"
+  //     />
+  //   ),
+  //   enableSorting: false,
+  //   enableHiding: false,
+  //   size: 32,
+  // },
   {
     accessorKey: 'id',
     header: 'ID',
@@ -43,6 +43,7 @@ export const informationsColumns: ColumnDef<Information>[] = [
       <DataTableColumnHeader column={column} title="Title" />
     ),
     cell: ({ row }) => <span className="font-medium">{row.getValue('title')}</span>,
+    enableSorting: false,
   },
   {
     accessorKey: 'status',
@@ -63,18 +64,18 @@ export const informationsColumns: ColumnDef<Information>[] = [
     },
   },
   {
-    accessorKey: 'publishDate',
+    accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Publish Date" />
+      <DataTableColumnHeader column={column} title="Created" />
     ),
     cell: ({ row }) => {
-      const v = row.getValue('publishDate') as string
-      if (!v) return <span className="text-muted-foreground">—</span>
-      try {
-        return <span>{format(new Date(v), 'dd MMM yyyy HH:mm', { locale: localeID })}</span>
-      } catch {
-        return <span className="text-muted-foreground">{v}</span>
+      const value = row.original.createdAt
+      if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+        return <span className="text-muted-foreground">—</span>
       }
+      return (
+        <span>{format(value, 'dd MMM yyyy HH:mm', { locale: localeID })}</span>
+      )
     },
     sortingFn: 'datetime',
   },

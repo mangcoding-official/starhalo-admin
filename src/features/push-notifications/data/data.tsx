@@ -1,4 +1,11 @@
-export const NOTIF_STATUS = ['draft','publish'] as const
+export const NOTIF_STATUS = [
+  'draft',
+  'scheduled',
+  'sent',
+  'canceled',
+  'failed',
+  'sending',
+] as const
 export type NotifStatus = typeof NOTIF_STATUS[number]
 
 export const NOTIF_STATUS_SCHEDULED_TAB = ['scheduled','sending'] as const  

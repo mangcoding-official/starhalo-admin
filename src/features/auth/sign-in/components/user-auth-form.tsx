@@ -29,7 +29,7 @@ interface AdminLoginData {
   access_token: string
   refresh_token: string
   token_type: string
-  expires_in: number
+  expires_in: number | null
   user: AuthUser
 }
 
@@ -51,11 +51,24 @@ function getLoginData(payload: AdminLoginApiResponse | null): AdminLoginData | n
 
   const maybeData = payload.data
 
+  const expiresInRaw =
+    typeof maybeData === 'object' && maybeData !== null
+      ? (maybeData as Record<string, unknown>).expires_in
+      : undefined
+
+  let expiresIn: number | null = null
+
+  if (typeof expiresInRaw === 'number') {
+    expiresIn = Number.isFinite(expiresInRaw) ? expiresInRaw : null
+  } else if (typeof expiresInRaw === 'string') {
+    const parsed = Number(expiresInRaw)
+    expiresIn = Number.isFinite(parsed) ? parsed : null
+  }
+
   if (
     typeof maybeData.access_token !== 'string' ||
     typeof maybeData.refresh_token !== 'string' ||
     typeof maybeData.token_type !== 'string' ||
-    typeof maybeData.expires_in !== 'number' ||
     !isRecord(maybeData.user)
   ) {
     return null
@@ -65,7 +78,7 @@ function getLoginData(payload: AdminLoginApiResponse | null): AdminLoginData | n
     access_token: maybeData.access_token,
     refresh_token: maybeData.refresh_token,
     token_type: maybeData.token_type,
-    expires_in: maybeData.expires_in,
+    expires_in: expiresIn,
     user: maybeData.user as AuthUser,
   }
 }
@@ -148,6 +161,9 @@ export function UserAuthForm({
 
       const loginData = getLoginData(payload)
 
+      console.log("loginData", loginData)
+      console.log(data)
+
       if (!loginData) {
         const message =
           getMessageFromResponse(payload) ?? 'Unable to sign in. Please try again.'
@@ -158,10 +174,12 @@ export function UserAuthForm({
         throw new Error(message)
       }
 
-      const expiresAt =
-        Number.isFinite(loginData.expires_in) && loginData.expires_in > 0
-          ? Date.now() + loginData.expires_in * 1000
+      const expiresInSeconds =
+        typeof loginData.expires_in === 'number' && loginData.expires_in > 0
+          ? loginData.expires_in
           : null
+      const expiresAt =
+        expiresInSeconds !== null ? Date.now() + expiresInSeconds * 1000 : null
 
       auth.setSession({
         accessToken: loginData.access_token,
@@ -176,7 +194,7 @@ export function UserAuthForm({
         getMessageFromResponse(payload) ?? 'Login successfully'
       toast.success(successMessage)
 
-      const targetPath = redirectTo || '/'
+      const targetPath = redirectTo || '/users'
       navigate({ to: targetPath, replace: true })
     } catch (error) {
       let message = 'Unable to sign in. Please try again.'

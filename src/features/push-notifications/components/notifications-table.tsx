@@ -1,156 +1,201 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import {
-    type SortingState,
-    type VisibilityState,
-    flexRender,
-    getCoreRowModel,
-    getFacetedRowModel,
-    getFacetedUniqueValues,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
+  type OnChangeFn,
+  type SortingState,
+  type VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
 } from '@tanstack/react-table'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-// import { DataTableBulkActions } from '@/components/data-table'
 import type { Notification } from '../data/schema'
 import { pushNotificationsColumns as columns } from './notifications-columns'
 
 const route = getRouteApi('/_authenticated/push-notifications/')
 
 type DataTableProps = {
-    data: Notification[]
+  data: Notification[]
+  total?: number
+  pageCount?: number
+  isLoading?: boolean
+  isFetching?: boolean
+  sorting: SortingState
+  onSortingChange?: OnChangeFn<SortingState>
 }
 
-export function PushNotificationsTable({ data }: DataTableProps) {
-    const [rowSelection, setRowSelection] = useState({})
-    const [sorting, setSorting] = useState<SortingState>([])
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+export function PushNotificationsTable({
+  data,
+  total = data.length,
+  pageCount: pageCountProp,
+  isLoading = false,
+  isFetching = false,
+  sorting,
+  onSortingChange,
+}: DataTableProps) {
+  const [rowSelection, setRowSelection] = useState({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
-    const {
-        globalFilter,
-        onGlobalFilterChange,
-        columnFilters,
-        onColumnFiltersChange,
-        pagination,
-        onPaginationChange,
-        ensurePageInRange,
-    } = useTableUrlState({
-        search: route.useSearch(),
-        navigate: route.useNavigate(),
-        pagination: { defaultPage: 1, defaultPageSize: 10 },
-        globalFilter: { enabled: true, key: 'filter' },
-        columnFilters: [
-            { columnId: 'status', searchKey: 'status', type: 'array' },
-        ],
-    })
+  const {
+    globalFilter,
+    onGlobalFilterChange,
+    columnFilters,
+    onColumnFiltersChange,
+    pagination,
+    onPaginationChange,
+    ensurePageInRange,
+  } = useTableUrlState({
+    search: route.useSearch(),
+    navigate: route.useNavigate(),
+    pagination: { defaultPage: 1, defaultPageSize: 10 },
+    globalFilter: { enabled: true, key: 's', trim: false },
+  })
 
-    const table = useReactTable({
-        data,
-        columns,
-        state: {
-            sorting,
-            columnVisibility,
-            rowSelection,
-            columnFilters,
-            globalFilter,
-            pagination,
-        },
-        enableRowSelection: true,
-        onRowSelectionChange: setRowSelection,
-        onSortingChange: setSorting,
-        onColumnVisibilityChange: setColumnVisibility,
-        globalFilterFn: (row, _colId, filterValue) => {
-            const id = String(row.getValue('id')).toLowerCase()
-            const title = String(row.getValue('title')).toLowerCase()
-            const searchValue = String(filterValue).toLowerCase()
-            return id.includes(searchValue) || title.includes(searchValue)
-        },
-        getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFacetedRowModel: getFacetedRowModel(),
-        getFacetedUniqueValues: getFacetedUniqueValues(),
-        onPaginationChange,
-        onGlobalFilterChange,
-        onColumnFiltersChange,
-    })
+  const effectivePageCount = useMemo(() => {
+    if (typeof pageCountProp === 'number' && pageCountProp > 0) {
+      return pageCountProp
+    }
 
-    const pageCount = table.getPageCount()
-    useEffect(() => {
-        ensurePageInRange(pageCount)
-    }, [pageCount, ensurePageInRange])
+    const pageSize = pagination?.pageSize ?? 10
+    if (pageSize <= 0) return 1
 
-    const statusOptions = [
-        { label: 'Draft', value: 'draft' },
-        { label: 'Scheduled', value: 'scheduled' },
-        // { label: 'Sending', value: 'sending' },
-        // { label: 'Sent', value: 'sent' },
-        // { label: 'Failed', value: 'failed' },
-        // { label: 'Canceled', value: 'canceled' },
-    ]
+    return Math.max(1, Math.ceil(total / pageSize))
+  }, [pageCountProp, pagination?.pageSize, total])
 
-    return (
-        <div className="space-y-4 max-sm:has-[div[role='toolbar']]:mb-16">
-            <DataTableToolbar
-                table={table}
-                searchPlaceholder="Filter by title or ID..."
-                filters={[
-                    { columnId: 'status', title: 'Status', options: statusOptions },
-                ]}
-            />
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      columnVisibility,
+      rowSelection,
+      columnFilters,
+      globalFilter,
+      pagination,
+    },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: onSortingChange ?? (() => {}),
+    onColumnVisibilityChange: setColumnVisibility,
+    globalFilterFn: (row, _colId, filterValue) => {
+      const id = String(row.getValue('id')).toLowerCase()
+      const title = String(row.getValue('title')).toLowerCase()
+      const searchValue = String(filterValue).toLowerCase()
+      return id.includes(searchValue) || title.includes(searchValue)
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    manualPagination: true,
+    pageCount: effectivePageCount,
+    autoResetPageIndex: false,
+    onPaginationChange,
+    onGlobalFilterChange,
+    onColumnFiltersChange,
+  })
 
-            <div className="overflow-hidden rounded-md border">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((hg) => (
-                            <TableRow key={hg.id}>
-                                {hg.headers.map((header) => (
-                                    <TableHead key={header.id} colSpan={header.colSpan}>
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(header.column.columnDef.header, header.getContext())}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
+  useEffect(() => {
+    if (!isLoading && !isFetching) {
+      ensurePageInRange(effectivePageCount)
+    }
+  }, [ensurePageInRange, effectivePageCount, isLoading, isFetching])
 
-                    <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
-                                </TableCell>
-                            </TableRow>
+  const visibleColumns = table.getVisibleLeafColumns()
+  const visibleColumnCount = visibleColumns.length || columns.length
+  const skeletonRowCount = Math.min(
+    pagination?.pageSize ? Number(pagination.pageSize) : 10,
+    10
+  )
+
+  const showSkeleton = isLoading || isFetching
+  const showEmptyState = !showSkeleton && total === 0 && data.length === 0
+
+  return (
+    <div className="space-y-4 max-sm:has-[div[role='toolbar']]:mb-16">
+      <DataTableToolbar
+        table={table}
+        searchPlaceholder="Filter by title or ID..."
+      />
+
+      <div className="overflow-hidden rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((hg) => (
+              <TableRow key={hg.id}>
+                {hg.headers.map((header) => (
+                  <TableHead key={header.id} colSpan={header.colSpan}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
                         )}
-                    </TableBody>
-                </Table>
-            </div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
 
-            <DataTablePagination table={table} />
-            {/* <DataTableBulkActions table={table} /> */}
-        </div>
-    )
+          <TableBody>
+            {showSkeleton ? (
+              Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
+                <TableRow key={`loading-${rowIndex}`}>
+                  {visibleColumns.map((column) => (
+                    <TableCell key={column.id}>
+                      <Skeleton className="h-4 w-full max-w-[220px]" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={visibleColumnCount}
+                  className="h-24 text-center"
+                >
+                  {showEmptyState ? 'No push notifications found.' : 'No results.'}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <DataTablePagination table={table} />
+    </div>
+  )
 }

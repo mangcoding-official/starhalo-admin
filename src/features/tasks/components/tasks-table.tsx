@@ -57,7 +57,7 @@ export function TasksTable({ data }: DataTableProps) {
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: true, key: 'filter' },
+    globalFilter: { enabled: true, key: 'filter', trim: false },
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'priority', searchKey: 'priority', type: 'array' },

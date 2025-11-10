@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import {
     type SortingState,
@@ -8,7 +8,6 @@ import {
     getFacetedRowModel,
     getFacetedUniqueValues,
     getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table'
@@ -22,6 +21,7 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { Information } from '../data/schema'
 import { informationsColumns as columns } from './informations-columns'
 import { infoStatuses } from '../data/data'
@@ -30,11 +30,26 @@ const route = getRouteApi('/_authenticated/informations/')
 
 type DataTableProps = {
     data: Information[]
+    total: number
+    pageCount: number
+    isLoading: boolean
+    isFetching: boolean
+    sorting: SortingState
+    onSortingChange?: (
+      updater: SortingState | ((state: SortingState) => SortingState)
+    ) => void
 }
 
-export function InformationsTable({ data }: DataTableProps) {
+export function InformationsTable({
+    data,
+    total,
+    pageCount,
+    isLoading,
+    isFetching,
+    sorting,
+    onSortingChange,
+}: DataTableProps) {
     const [rowSelection, setRowSelection] = useState({})
-    const [sorting, setSorting] = useState<SortingState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
     const {
@@ -49,14 +64,16 @@ export function InformationsTable({ data }: DataTableProps) {
         search: route.useSearch(),
         navigate: route.useNavigate(),
         pagination: { defaultPage: 1, defaultPageSize: 10 },
-        globalFilter: { enabled: true, key: 'filter' },
+        globalFilter: { enabled: true, key: 's', trim: false },
         columnFilters: [
             { columnId: 'status', searchKey: 'status', type: 'array' },
         ],
     })
 
+    const typedData = useMemo(() => data, [data])
+
     const table = useReactTable({
-        data,
+        data: typedData,
         columns,
         state: {
             sorting,
@@ -68,7 +85,7 @@ export function InformationsTable({ data }: DataTableProps) {
         },
         enableRowSelection: true,
         onRowSelectionChange: setRowSelection,
-        onSortingChange: setSorting,
+        onSortingChange: onSortingChange ?? (() => {}),
         onColumnVisibilityChange: setColumnVisibility,
         globalFilterFn: (row, _columnId, filterValue) => {
             const id = String(row.getValue('id')).toLowerCase()
@@ -78,19 +95,32 @@ export function InformationsTable({ data }: DataTableProps) {
         },
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFacetedRowModel: getFacetedRowModel(),
         getFacetedUniqueValues: getFacetedUniqueValues(),
         onPaginationChange,
         onGlobalFilterChange,
         onColumnFiltersChange,
+        manualPagination: true,
+        pageCount,
+        autoResetPageIndex: false,
     })
 
-    const pageCount = table.getPageCount()
     useEffect(() => {
-        ensurePageInRange(pageCount)
-    }, [pageCount, ensurePageInRange])
+        if (!isLoading && !isFetching) {
+            ensurePageInRange(pageCount)
+        }
+    }, [ensurePageInRange, pageCount, isFetching, isLoading])
+
+    const visibleColumns = table.getVisibleLeafColumns()
+    const visibleColumnCount = visibleColumns.length || columns.length
+    const skeletonRowCount = Math.min(
+        table.getState().pagination?.pageSize ?? 10,
+        10
+    )
+
+    const showSkeleton = isLoading || isFetching
+    const isTableEmpty = total === 0 && !showSkeleton
 
     return (
         <div className="space-y-4 max-sm:has-[div[role='toolbar']]:mb-16">
@@ -126,7 +156,17 @@ export function InformationsTable({ data }: DataTableProps) {
                     </TableHeader>
 
                     <TableBody>
-                        {table.getRowModel().rows?.length ? (
+                        {showSkeleton ? (
+                            Array.from({ length: skeletonRowCount }).map((_, index) => (
+                                <TableRow key={`loading-${index}`}>
+                                    {visibleColumns.map((column) => (
+                                        <TableCell key={column.id}>
+                                            <Skeleton className="h-4 w-full" />
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        ) : table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
@@ -144,8 +184,11 @@ export function InformationsTable({ data }: DataTableProps) {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                <TableCell
+                                    colSpan={visibleColumnCount}
+                                    className="h-24 text-center"
+                                >
+                                    {isTableEmpty ? 'No informations found.' : 'No results.'}
                                 </TableCell>
                             </TableRow>
                         )}

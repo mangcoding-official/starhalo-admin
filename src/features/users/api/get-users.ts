@@ -56,7 +56,7 @@ export async function getUsers({
       page,
       per_page: perPage,
       sort,
-      ...(search?.trim() ? { search: search.trim() } : {}),
+      ...(search?.trim() ? { s: search.trim() } : {}),
     },
   })
 
@@ -72,8 +72,6 @@ export async function getUsers({
   } = parsed.data
 
   const users = apiUsers.map(createUserFromApi)
-
-  console.log(users)
 
   return {
     users,

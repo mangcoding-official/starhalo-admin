@@ -63,6 +63,8 @@ export function UsersTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
   const {
+    globalFilter,
+    onGlobalFilterChange,
     columnFilters,
     onColumnFiltersChange,
     pagination,
@@ -72,10 +74,7 @@ export function UsersTable({
     search,
     navigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: false },
-    columnFilters: [
-      { columnId: 'username', searchKey: 'username', type: 'string' },
-    ],
+    globalFilter: { enabled: true, key: 's', trim: false },
   })
 
   const table = useReactTable({
@@ -87,6 +86,7 @@ export function UsersTable({
       rowSelection,
       columnFilters,
       columnVisibility,
+      globalFilter,
     },
     enableRowSelection: true,
     onPaginationChange,
@@ -94,11 +94,21 @@ export function UsersTable({
     onRowSelectionChange: setRowSelection,
     onSortingChange: onSortingChange ?? (() => {}),
     onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const searchValue = String(filterValue ?? '').toLowerCase()
+      if (!searchValue) {
+        return true
+      }
+      const username = String(row.getValue('username') ?? '').toLowerCase()
+      const email = String(row.getValue('email') ?? '').toLowerCase()
+      return username.includes(searchValue) || email.includes(searchValue)
+    },
     manualPagination: true,
     pageCount,
     manualSorting: true,
@@ -118,14 +128,14 @@ export function UsersTable({
     10
   )
 
-  const isTableEmpty = total === 0 && !isLoading && !isFetching
+  const showSkeleton = isLoading || isFetching
+  const isTableEmpty = total === 0 && !showSkeleton
 
   return (
     <div className='space-y-4 max-sm:has-[div[role="toolbar"]]:mb-16'>
       <DataTableToolbar
         table={table}
         searchPlaceholder='Filter users...'
-        searchKey='username'
         filters={[]}
       />
       <div className='overflow-hidden rounded-md border'>
@@ -156,7 +166,7 @@ export function UsersTable({
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {showSkeleton ? (
               Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
                 <TableRow key={`loading-${rowIndex}`} className='group/row'>
                   {visibleColumns.map((column) => {

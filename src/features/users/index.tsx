@@ -22,16 +22,14 @@ export function Users() {
   const page = search.page ?? 1
   const pageSize = search.pageSize ?? 10
   const sort = search.sort === 'asc' ? 'asc' : 'desc'
-  const usernameFilter =
-    typeof search.username === 'string' && search.username.trim().length > 0
-      ? search.username
-      : undefined
+  const searchTerm =
+    typeof search.s === 'string' && search.s.trim().length > 0 ? search.s : undefined
 
   const { data, isLoading, isFetching, error } = useUsersQuery({
     page,
     perPage: pageSize,
     sort,
-    search: usernameFilter,
+    search: searchTerm,
   })
 
   useEffect(() => {

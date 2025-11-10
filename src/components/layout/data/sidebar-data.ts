@@ -37,11 +37,11 @@ export const sidebarData: SidebarData = {
     {
       title: 'General',
       items: [
-        {
-          title: 'Dashboard',
-          url: '/',
-          icon: LayoutDashboard,
-        },
+        // {
+        //   title: 'Dashboard',
+        //   url: '/',
+        //   icon: LayoutDashboard,
+        // },
         {
           title: 'Users',
           url: '/users',
