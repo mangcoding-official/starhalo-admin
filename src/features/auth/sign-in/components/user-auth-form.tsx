@@ -161,8 +161,8 @@ export function UserAuthForm({
 
       const loginData = getLoginData(payload)
 
-      console.log("loginData", loginData)
-      console.log(data)
+      // console.log("loginData", loginData)
+      // console.log(data)
 
       if (!loginData) {
         const message =
