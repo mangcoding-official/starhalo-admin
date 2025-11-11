@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
   CartesianGrid,
@@ -15,6 +15,14 @@ import {
   YAxis,
 } from 'recharts'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -48,40 +56,14 @@ type UsersViewDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
-type RawProfile = {
-  target_ml?: number | null
-  default_target_ml?: number | null
-  color?: string | null
-}
-
-type RawDailyAchievement = {
-  id?: number | string | null
-  achievement_date?: string | null
-  total_intake_ml?: number | null
-  target_ml_used?: number | null
-  success_percentage?: number | null
-  is_target_met?: boolean | null
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-type RawIntakeLog = {
-  daily_achievement_id?: number | string | null
-  intake_volume_ml?: number | null
-  client_time?: string | null
-  created_at?: string | null
-}
-
 type DrinkHistoryRow = {
   id: string
   date: Date
   total: number
   target: number
   success: boolean
-  percentage: number | null
+  percentage: number
 }
-
-const HOURS_IN_DAY = 24
 
 function parseNullableDate(value?: string | null) {
   if (!value) return null
@@ -90,10 +72,19 @@ function parseNullableDate(value?: string | null) {
 }
 
 export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDialogProps) {
+  const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly')
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({})
   const userId = currentRow?.id ?? null
-  const { data, isLoading, isFetching, error } = useUserDetailQuery(userId, open)
+  const hasCompleteRange = Boolean(dateRange.start && dateRange.end)
+  const { data, isLoading, isFetching, error } = useUserDetailQuery(userId, open, {
+    reportType,
+    startDate: hasCompleteRange ? dateRange.start : undefined,
+    endDate: hasCompleteRange ? dateRange.end : undefined,
+  })
 
   const detail = data
+
+  console.log("detail", detail)
 
   const emailVerified =
     detail?.emailVerifiedAt && !Number.isNaN(detail.emailVerifiedAt.getTime())
@@ -106,81 +97,116 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
   const profile = detail?.profile
   const stats = detail?.stats
+  const rawDetail = detail?.raw
+
+  const followersAll = useMemo(
+    () => extractRecordArray(rawDetail?.followers_all),
+    [rawDetail]
+  )
+  const mutedUsersList = useMemo(
+    () => extractRecordArray(rawDetail?.mutedUsers ?? rawDetail?.muted_users),
+    [rawDetail]
+  )
+  const blockedUsersList = useMemo(
+    () => extractRecordArray(rawDetail?.blockedUsers ?? rawDetail?.blocked_users),
+    [rawDetail]
+  )
+  const sentReportsList = useMemo(
+    () => extractRecordArray(rawDetail?.sentReports ?? rawDetail?.sent_reports),
+    [rawDetail]
+  )
+  const alarmSettingData = useMemo(() => {
+    const candidate = rawDetail?.alarmSetting ?? rawDetail?.alarm_setting
+    return isRecord(candidate) ? candidate : null
+  }, [rawDetail])
+  const notificationSummary = useMemo(
+    () => (isRecord(rawDetail?.my_notification) ? rawDetail?.my_notification : null),
+    [rawDetail]
+  )
+  const newFollowersList = useMemo(
+    () => extractRecordArray(notificationSummary?.['new_follower']),
+    [notificationSummary]
+  )
+  const dailyFollowerProgressList = useMemo(
+    () => extractRecordArray(notificationSummary?.['daily_follower_progress_list']),
+    [notificationSummary]
+  )
+  const todayNotifications = useMemo(
+    () => extractRecordArray(notificationSummary?.['today_notification']),
+    [notificationSummary]
+  )
+  const lastWeekNotifications = useMemo(
+    () => extractRecordArray(notificationSummary?.['last_week_notification']),
+    [notificationSummary]
+  )
+  const todayDrinkLogs = useMemo(
+    () => extractRecordArray(rawDetail?.my_today_drink_logs),
+    [rawDetail]
+  )
+  const thumblerData = useMemo(
+    () => (isRecord(rawDetail?.my_thumbler) ? (rawDetail?.my_thumbler as UnknownRecord) : null),
+    [rawDetail]
+  )
+  const hydrationReport = useMemo(
+    () => (isRecord(rawDetail?.my_hydration) ? (rawDetail?.my_hydration as UnknownRecord) : null),
+    [rawDetail]
+  )
+  const hydrationSummary = useMemo(
+    () => getRecordField(hydrationReport ?? {}, ['summary']),
+    [hydrationReport]
+  )
+  const hydrationSummaryMeta = useMemo(
+    () => getRecordField(hydrationSummary ?? {}, ['meta']),
+    [hydrationSummary]
+  )
+  const reportPeriod = getStringField(hydrationReport ?? {}, ['report_period'])
+  const reportTypeLabel = getStringField(hydrationReport ?? {}, ['type'])
+  const weeklyProgressList = useMemo(
+    () => extractRecordArray(thumblerData?.weekly_progress_list),
+    [thumblerData]
+  )
 
   const hydrationOverview = useMemo(() => {
-    if (!detail?.raw) {
+    if (!thumblerData) {
       return null
     }
 
-    const raw = detail.raw as {
-      profile?: RawProfile | null
-      daily_achievements?: RawDailyAchievement[] | null
-      intake_drink_logs?: RawIntakeLog[] | null
-    }
-
-    const achievements =
-      raw.daily_achievements?.filter(
-        (item): item is RawDailyAchievement => Boolean(item)
-      ) ?? []
-
-    if (!achievements.length) {
-      return null
-    }
-
-    const [latestAchievement] = [...achievements].sort((a, b) => {
-      const aDate =
-        parseNullableDate(a.achievement_date) ??
-        parseNullableDate(a.updated_at) ??
-        parseNullableDate(a.created_at)
-      const bDate =
-        parseNullableDate(b.achievement_date) ??
-        parseNullableDate(b.updated_at) ??
-        parseNullableDate(b.created_at)
-      return (bDate?.getTime() ?? 0) - (aDate?.getTime() ?? 0)
-    })
-
-    if (!latestAchievement) {
+    const dailyProgress = getRecordField(thumblerData, ['daily_progress'])
+    if (!dailyProgress) {
       return null
     }
 
     const target =
-      // latestAchievement.target_ml_used ??
-      raw.profile?.target_ml ??
-      // raw.profile?.default_target_ml ??
+      getNumberField(dailyProgress, ['daily_target_ml']) ??
+      profile?.targetMl ??
+      profile?.defaultTargetMl ??
       0
-    const total = latestAchievement.total_intake_ml ?? 0
+    const total = getNumberField(dailyProgress, ['current_intake_ml']) ?? 0
+    const progressPct =
+      getNumberField(dailyProgress, ['progress_percentage']) ??
+      (target > 0 ? (total / target) * 100 : 0)
     const percentage = target > 0 ? Math.min(total / target, 1) : 0
     const accentColor = '#6BC691'
 
-    const logs =
-      raw.intake_drink_logs?.filter((log) => {
-        if (!log) return false
-        if (latestAchievement.id === undefined || latestAchievement.id === null) return true
-        return String(log.daily_achievement_id ?? '') === String(latestAchievement.id ?? '')
-      }) ?? []
+    const hourlyData = extractRecordArray(
+      Array.isArray((thumblerData as UnknownRecord).hourly_graph_data)
+        ? (thumblerData as UnknownRecord).hourly_graph_data
+        : []
+    )
 
-    const hourlyTotals = Array.from({ length: HOURS_IN_DAY }, () => 0)
-
-    logs.forEach((log) => {
-      const timestamp =
-        parseNullableDate(log.client_time) ??
-        parseNullableDate(log.created_at)
-      if (!timestamp) return
-      const hour = timestamp.getHours()
-      if (Number.isNaN(hour)) return
-      const volume = log.intake_volume_ml ?? 0
-      hourlyTotals[hour] += volume
-    })
-
-    const lineData = hourlyTotals.map((volume, hour) => ({
-      hour,
-      label: hour.toString().padStart(2, '0'),
-      volume,
-    }))
-
-    if (lineData.every((point) => point.volume === 0) && total > 0) {
-      lineData[Math.min(12, lineData.length - 1)].volume = total
-    }
+    const lineData =
+      hourlyData.length > 0
+        ? hourlyData.map((entry, index) => {
+            const hour = getNumberField(entry, ['hour']) ?? index
+            const volume =
+              getNumberField(entry, ['volume_ml', 'intake_ml']) ?? 0
+            return {
+              hour,
+              label: String(hour).padStart(2, '0'),
+              volume,
+            }
+          })
+        : [{ hour: 0, label: '00', volume: total }]
 
     const maxVolume = lineData.reduce(
       (max, item) => Math.max(max, item.volume),
@@ -189,81 +215,65 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
     const yAxisCandidate = Math.max(maxVolume, total, target)
     const yMax = Math.max(100, Math.ceil((yAxisCandidate || 100) / 100) * 100)
 
+    const reportMeta = getRecordField(
+      getRecordField(hydrationReport ?? {}, ['summary']) ?? {},
+      ['meta']
+    )
     const date =
-      parseNullableDate(latestAchievement.achievement_date) ??
-      parseNullableDate(latestAchievement.updated_at) ??
-      parseNullableDate(latestAchievement.created_at)
+      parseNullableDate(
+        getStringField(reportMeta ?? {}, ['startDate', 'start_date'])
+      ) ?? null
 
     return {
       total,
       target,
       percentage,
-      radialValue: Math.round(Math.min(percentage, 1) * 100),
+      radialValue: Math.round(Math.min(progressPct, 100)),
       lineData,
       yMax,
       date,
-      isTargetMet: Boolean(latestAchievement.is_target_met),
+      isTargetMet: percentage >= 1,
       color: accentColor,
     }
-  }, [detail?.raw])
+  }, [thumblerData, hydrationReport, profile?.defaultTargetMl, profile?.targetMl])
 
   const drinkHistory = useMemo<DrinkHistoryRow[]>(() => {
-    if (!detail?.raw) {
+    const progressList = extractRecordArray(hydrationReport?.progress_list)
+    if (!progressList.length) {
       return []
     }
 
-    const raw = detail.raw as {
-      profile?: RawProfile | null
-      daily_achievements?: RawDailyAchievement[] | null
-    }
-
-    const achievements =
-      raw.daily_achievements?.filter(
-        (item): item is RawDailyAchievement => Boolean(item)
-      ) ?? []
-
-    if (!achievements.length) {
-      return []
-    }
-
-    const fallbackTarget =
-      raw.profile?.target_ml ??
-      raw.profile?.default_target_ml ??
+    const target =
+      profile?.targetMl ??
+      profile?.defaultTargetMl ??
+      getNumberField(getRecordField(thumblerData ?? {}, ['daily_progress']) ?? {}, ['daily_target_ml']) ??
       0
 
-    return achievements
-      .map((achievement, index) => {
-        const date =
-          parseNullableDate(achievement.achievement_date) ??
-          parseNullableDate(achievement.updated_at) ??
-          parseNullableDate(achievement.created_at)
-
+    const rows = progressList
+      .map((entry, index) => {
+        const rawDate =
+          getStringField(entry, ['full_date']) ?? getStringField(entry, ['date'])
+        const date = parseNullableDate(rawDate)
         if (!date) return null
 
-        const total = achievement.total_intake_ml ?? 0
-        const target =
-          achievement.target_ml_used ??
-          fallbackTarget ??
-          0
-        const percentage =
-          target > 0 ? Math.round(Math.min((total / target) * 100, 999)) : null
+        const percentageRaw = getNumberField(entry, ['progress_percentage']) ?? 0
+        const percentage = Math.max(0, Math.round(percentageRaw * 100) / 100)
+        const total =
+          target > 0 ? Math.round((percentage / 100) * target) : 0
 
         return {
-          id: String(achievement.id ?? `${index}-${date.getTime()}`),
+          id: `${entry.day ?? index}-${date.getTime()}`,
           date,
           total,
           target,
-          success: Boolean(
-            achievement.is_target_met ??
-              (typeof percentage === 'number' && percentage >= 100)
-          ),
+          success: percentage >= 100,
           percentage,
-        } satisfies DrinkHistoryRow
+        }
       })
-      .filter((item): item is DrinkHistoryRow => item !== null)
-      .sort((a, b) => b.date.getTime() - a.date.getTime())
-      .slice(0, 7)
-  }, [detail?.raw])
+      .filter((item): item is DrinkHistoryRow => Boolean(item))
+
+    return rows.sort((a, b) => b.date.getTime() - a.date.getTime())
+  }, [hydrationReport, profile?.defaultTargetMl, profile?.targetMl, thumblerData])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -277,7 +287,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
         {hydrationOverview ? (
           <Card className='border border-border/60 bg-card/60'>
-            <CardHeader className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
+            <CardHeader className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
               <div>
                 <CardTitle>Daily Hydration</CardTitle>
                 <CardDescription>
@@ -286,11 +296,13 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                     : 'Most recent synced hydration detail'}
                 </CardDescription>
               </div>
-              <span className='text-sm font-medium text-muted-foreground'>
-                {hydrationOverview.isTargetMet
-                  ? 'Target achieved'
-                  : `${Math.round(hydrationOverview.percentage * 100)}% of target`}
-              </span>
+              <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3'>
+                <span className='text-sm font-medium text-muted-foreground'>
+                  {hydrationOverview.isTargetMet
+                    ? 'Target achieved'
+                    : `${Math.round(hydrationOverview.percentage * 100)}% of target`}
+                </span>
+              </div>
             </CardHeader>
             <CardContent className='flex flex-col gap-6 lg:flex-row lg:items-center'>
               <div className='relative mx-auto flex aspect-square w-full max-w-xs items-center justify-center'>
@@ -357,7 +369,153 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
               </div>
             </CardContent>
           </Card>
+        ) : (
+          <Card className='border border-border/60 bg-card/60'>
+            <CardHeader>
+              <CardTitle>Daily Hydration</CardTitle>
+              <CardDescription>No hydration data available for the selected period.</CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3'>
+          <div className='flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+            <span>Report</span>
+            <Select
+              value={reportType}
+              onValueChange={(value) => setReportType(value as 'weekly' | 'monthly')}
+            >
+              <SelectTrigger className='h-8 w-[120px]'>
+                <SelectValue placeholder='Weekly' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='weekly'>Weekly</SelectItem>
+                <SelectItem value='monthly'>Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+            <span>Range</span>
+            <Input
+              type='date'
+              value={dateRange.start ?? ''}
+              onChange={(event) =>
+                setDateRange((prev) => ({ ...prev, start: event.target.value || undefined }))
+              }
+              className='h-8 w-[160px] text-xs'
+            />
+            <span className='text-muted-foreground'>to</span>
+            <Input
+              type='date'
+              value={dateRange.end ?? ''}
+              onChange={(event) =>
+                setDateRange((prev) => ({ ...prev, end: event.target.value || undefined }))
+              }
+              className='h-8 w-[160px] text-xs'
+              min={dateRange.start}
+            />
+            <Button
+              type='button'
+              variant='ghost'
+              size='sm'
+              className='h-7 text-[11px] uppercase'
+              onClick={() => setDateRange({})}
+              disabled={!dateRange.start && !dateRange.end}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+
+        {(hydrationSummary || reportPeriod || weeklyProgressList.length) ? (
+          <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
+            {(hydrationSummary || reportPeriod) ? (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader className='flex justify-between w-full'>
+                  <div className=''>
+                    <CardTitle>Hydration Summary</CardTitle>
+                    <CardDescription>
+                      {reportPeriod ?? 'Aggregated metrics based on the selected range.'}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className='grid grid-cols-2 gap-3 text-sm md:grid-cols-3'>
+                    {reportTypeLabel ? (
+                      <div className='rounded-md border border-border/50 bg-muted/20 p-3'>
+                        <p className='text-xs uppercase text-muted-foreground'>Type</p>
+                        <p className='font-semibold capitalize'>{reportTypeLabel}</p>
+                      </div>
+                    ) : null}
+                    {hydrationSummary ? (
+                      <>
+                        <SummaryStat
+                          label='Avg Intake'
+                          value={`${getNumberField(hydrationSummary, ['avg_intake_ml']) ?? 0} ml`}
+                        />
+                        <SummaryStat
+                          label='Avg Success'
+                          value={`${getNumberField(hydrationSummary, ['avg_success_rate']) ?? 0}%`}
+                        />
+                        <SummaryStat
+                          label='Day Streak'
+                          value={`${getNumberField(hydrationSummary, ['day_streak']) ?? 0} days`}
+                        />
+                        <SummaryStat
+                          label='Notifications'
+                          value={getStringField(hydrationSummary, ['notification_display']) ?? '0/0'}
+                        />
+                      </>
+                    ) : null}
+                    {hydrationSummaryMeta ? (
+                      <>
+                        <SummaryStat
+                          label='Total Intake'
+                          value={`${getNumberField(hydrationSummaryMeta, ['sumIntakeMl']) ?? 0} ml`}
+                        />
+                        <SummaryStat
+                          label='Total Success'
+                          value={`${getNumberField(hydrationSummaryMeta, ['sumSuccessRate']) ?? 0}%`}
+                        />
+                      </>
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {weeklyProgressList.length ? (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader>
+                  <CardTitle>Weekly Progress</CardTitle>
+                  <CardDescription>Daily completion rate across the selected period.</CardDescription>
+                </CardHeader>
+                <CardContent className='grid grid-cols-2 gap-3 text-sm md:grid-cols-3'>
+                  {weeklyProgressList.map((dayData, index) => {
+                    const dayLabel = getStringField(dayData, ['day']) ?? `Day ${index + 1}`
+                    const pct = getNumberField(dayData, ['progress_percentage']) ?? 0
+                    const statusClass =
+                      pct >= 100
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : pct >= 50
+                          ? 'text-amber-600'
+                          : 'text-muted-foreground'
+                    return (
+                      <div
+                        key={`progress-${dayLabel}-${index}`}
+                        className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                      >
+                        <div className='text-xs uppercase text-muted-foreground'>{dayLabel}</div>
+                        <div className={`text-lg font-semibold ${statusClass}`}>{pct}%</div>
+                      </div>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
         ) : null}
+        
         {drinkHistory.length ? (
           <Card className='border border-border/60 bg-card/60'>
             <CardHeader className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
@@ -428,6 +586,334 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                   </TableBody>
                 </Table>
               </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {(alarmSettingData || followersAll.length || mutedUsersList.length || blockedUsersList.length || sentReportsList.length) ? (
+          <div className='grid grid-cols-1 gap-4 py-4 lg:grid-cols-2'>
+            {alarmSettingData ? (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader>
+                  <CardTitle>Alarm Settings</CardTitle>
+                  <CardDescription>Most recent hydrated alarm configuration.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className='space-y-2 text-sm'>
+                    {Object.entries(alarmSettingData).map(([key, value]) => (
+                      <div key={key} className='flex items-start justify-between gap-4 rounded-md border border-border/40 bg-muted/10 px-3 py-2'>
+                        <dt className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                          {formatKeyLabel(key)}
+                        </dt>
+                        <dd className='flex-1 text-right text-sm font-semibold' style={{
+                          wordBreak: "break-all"
+                        }}>
+                          {formatValueDisplay(value)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {followersAll.length ? (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader>
+                  <CardTitle>Followers</CardTitle>
+                  <CardDescription>Showing the latest {Math.min(followersAll.length, 8)} followers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className='space-y-2 text-sm'>
+                    {followersAll.slice(0, 8).map((item, index) => {
+                      const user = formatUserListItem(item)
+                      return (
+                        <li
+                          key={`follower-${user.primary}-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{user.primary}</div>
+                          {user.secondary ? (
+                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                    {followersAll.length > 8 ? (
+                      <li className='text-xs text-muted-foreground'>
+                        +{followersAll.length - 8} more followers
+                      </li>
+                    ) : null}
+                  </ul>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {mutedUsersList.length ? (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader>
+                  <CardTitle>Muted Users</CardTitle>
+                  <CardDescription>Users currently muted by this account.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className='space-y-2 text-sm'>
+                    {mutedUsersList.slice(0, 8).map((item, index) => {
+                      const user = formatUserListItem(item)
+                      return (
+                        <li
+                          key={`muted-${user.primary}-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{user.primary}</div>
+                          {user.secondary ? (
+                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                    {mutedUsersList.length > 8 ? (
+                      <li className='text-xs text-muted-foreground'>
+                        +{mutedUsersList.length - 8} more muted users
+                      </li>
+                    ) : null}
+                  </ul>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {blockedUsersList.length ? (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader>
+                  <CardTitle>Blocked Users</CardTitle>
+                  <CardDescription>Accounts blocked by this user.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className='space-y-2 text-sm'>
+                    {blockedUsersList.slice(0, 8).map((item, index) => {
+                      const user = formatUserListItem(item)
+                      return (
+                        <li
+                          key={`blocked-${user.primary}-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{user.primary}</div>
+                          {user.secondary ? (
+                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                    {blockedUsersList.length > 8 ? (
+                      <li className='text-xs text-muted-foreground'>
+                        +{blockedUsersList.length - 8} more blocked users
+                      </li>
+                    ) : null}
+                  </ul>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {sentReportsList.length ? (
+              <Card className='border border-border/60 bg-card/60 lg:col-span-2'>
+                <CardHeader>
+                  <CardTitle>Sent Reports</CardTitle>
+                  <CardDescription>Latest moderation reports filed by this user.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className='space-y-2 text-sm'>
+                    {sentReportsList.slice(0, 6).map((entry, index) => {
+                      const reason =
+                        getStringField(entry, ['reason', 'category', 'type']) ?? `Report #${index + 1}`
+                      const targetUser = getRecordField(entry, ['reported_user', 'target_user', 'user'])
+                      const targetLabel = targetUser ? formatUserListItem(targetUser).primary : undefined
+                      const createdAt = formatTimestamp(getStringField(entry, ['created_at', 'submitted_at']))
+                      return (
+                        <li
+                          key={`report-${reason}-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{reason}</div>
+                          {targetLabel ? (
+                            <div className='text-xs text-muted-foreground'>Target: {targetLabel}</div>
+                          ) : null}
+                          {createdAt ? (
+                            <div className='text-xs text-muted-foreground'>Filed {createdAt}</div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                    {sentReportsList.length > 6 ? (
+                      <li className='text-xs text-muted-foreground'>
+                        +{sentReportsList.length - 6} additional reports
+                      </li>
+                    ) : null}
+                  </ul>
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+        ) : null}
+
+        {notificationSummary || newFollowersList.length || todayNotifications.length || lastWeekNotifications.length ? (
+          <Card className='border border-border/60 bg-card/60'>
+            <CardHeader>
+              <CardTitle>Notifications</CardTitle>
+              <CardDescription>Recent engagement and follower updates.</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-6 text-sm'>
+              {newFollowersList.length ? (
+                <section>
+                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                    New Followers
+                  </div>
+                  <ul className='space-y-2'>
+                    {newFollowersList.slice(0, 6).map((item, index) => {
+                      const user = formatUserListItem(item)
+                      return (
+                        <li
+                          key={`notif-new-${user.primary}-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{user.primary}</div>
+                          {user.secondary ? (
+                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              ) : null}
+
+              {dailyFollowerProgressList.length ? (
+                <section>
+                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                    Follower Progress
+                  </div>
+                  <ul className='space-y-2'>
+                    {dailyFollowerProgressList.slice(0, 5).map((item, index) => {
+                      const follower = getRecordField(item, ['user'])
+                      const user = formatUserListItem(follower ?? item)
+                      const progress = getNumberField(item, ['progress_percentage'])
+                      return (
+                        <li
+                          key={`progress-${user.primary}-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{user.primary}</div>
+                          <div className='text-xs text-muted-foreground'>
+                            Progress: {progress !== undefined ? `${progress}%` : 'n/a'}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              ) : null}
+
+              {todayNotifications.length ? (
+                <section>
+                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                    Today
+                  </div>
+                  <ul className='space-y-2'>
+                    {todayNotifications.slice(0, 5).map((item, index) => {
+                      const title =
+                        getStringField(item, ['title', 'pattern']) ??
+                        `Notification #${index + 1}`
+                      const timestamp = formatTimestamp(getStringField(item, ['created_at']))
+                      return (
+                        <li
+                          key={`today-notif-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{title}</div>
+                          {timestamp ? (
+                            <div className='text-xs text-muted-foreground'>{timestamp}</div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              ) : null}
+
+              {lastWeekNotifications.length ? (
+                <section>
+                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                    Last Week
+                  </div>
+                  <ul className='space-y-2'>
+                    {lastWeekNotifications.slice(0, 5).map((item, index) => {
+                      const title =
+                        getStringField(item, ['title', 'pattern']) ??
+                        `Notification #${index + 1}`
+                      const timestamp = formatTimestamp(getStringField(item, ['created_at']))
+                      return (
+                        <li
+                          key={`lastweek-notif-${index}`}
+                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                        >
+                          <div className='font-semibold'>{title}</div>
+                          {timestamp ? (
+                            <div className='text-xs text-muted-foreground'>{timestamp}</div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              ) : null}
+
+              {!newFollowersList.length && !dailyFollowerProgressList.length && !todayNotifications.length && !lastWeekNotifications.length ? (
+                <p className='text-sm text-muted-foreground'>No notification data available.</p>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {todayDrinkLogs.length ? (
+          <Card className='border border-border/60 bg-card/60'>
+            <CardHeader>
+              <CardTitle>Today's Drink Logs</CardTitle>
+              <CardDescription>Latest entries synced for the current day.</CardDescription>
+            </CardHeader>
+            <CardContent className='overflow-x-auto'>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client Time</TableHead>
+                    <TableHead>Server Time</TableHead>
+                    <TableHead className='text-right'>Intake</TableHead>
+                    <TableHead className='text-right'>Target</TableHead>
+                    <TableHead className='text-right'>Progress</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {todayDrinkLogs.slice(0, 8).map((log, index) => {
+                    const clientTime = getStringField(log, ['client_time', 'time'])
+                    const serverTime = getStringField(log, ['server_time', 'created_at'])
+                    const intake = getNumberField(log, ['intake_ml', 'intake', 'volume_ml'])
+                    const target = getNumberField(log, ['target_ml'])
+                    const progress = getNumberField(log, ['success_percentage', 'progress_percentage'])
+                    return (
+                      <TableRow key={`today-log-${index}`}>
+                        <TableCell>{clientTime ?? '—'}</TableCell>
+                        <TableCell>{serverTime ? formatTimestamp(serverTime) : '—'}</TableCell>
+                        <TableCell className='text-right'>
+                          {intake !== undefined ? `${intake} ml` : '—'}
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          {target !== undefined ? `${target} ml` : '—'}
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          {progress !== undefined ? `${progress}%` : '—'}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         ) : null}
@@ -561,5 +1047,116 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+type UnknownRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function extractRecordArray(value: unknown): UnknownRecord[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => (isRecord(item) ? item : null))
+    .filter((item): item is UnknownRecord => item !== null)
+}
+
+function getStringField(record: UnknownRecord, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const raw = record[key]
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      return raw.trim()
+    }
+  }
+  return undefined
+}
+
+function getNumberField(record: UnknownRecord, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const raw = record[key]
+    const parsed =
+      typeof raw === 'number'
+        ? raw
+        : typeof raw === 'string' && raw.trim() !== ''
+          ? Number(raw)
+          : undefined
+    if (typeof parsed === 'number' && !Number.isNaN(parsed)) {
+      return parsed
+    }
+  }
+  return undefined
+}
+
+function getRecordField(record: UnknownRecord, keys: string[]): UnknownRecord | undefined {
+  for (const key of keys) {
+    const candidate = record[key]
+    if (isRecord(candidate)) {
+      return candidate
+    }
+  }
+  return undefined
+}
+
+function formatUserListItem(entry: UnknownRecord | null | undefined): { primary: string; secondary?: string } {
+  if (!entry) {
+    return { primary: 'Unknown user' }
+  }
+  const primary =
+    getStringField(entry, ['username', 'name', 'email', 'title']) ??
+    (typeof entry.id === 'string' || typeof entry.id === 'number'
+      ? `User ${entry.id}`
+      : 'Unknown user')
+  const secondary = getStringField(entry, ['email', 'pattern', 'role'])
+  return { primary, secondary }
+}
+
+function formatKeyLabel(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatValueDisplay(value: unknown): string {
+  if (value === null || typeof value === 'undefined') return '—'
+  if (typeof value === 'boolean') return value ? 'Enabled' : 'Disabled'
+  if (typeof value === 'number') return value.toString()
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) {
+    const formatted = value
+      .map((entry) => {
+        if (entry === null || typeof entry === 'undefined') return ''
+        if (typeof entry === 'string' || typeof entry === 'number') {
+          return String(entry)
+        }
+        return JSON.stringify(entry)
+      })
+      .filter((entry) => entry.trim().length > 0)
+    return formatted.length ? formatted.join(', ') : '—'
+  }
+  return JSON.stringify(value)
+}
+
+function formatTimestamp(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return value
+  }
+  return format(parsed, 'dd MMM yyyy HH:mm')
+}
+
+type SummaryStatProps = {
+  label: string
+  value: string | number
+}
+
+function SummaryStat({ label, value }: SummaryStatProps) {
+  return (
+    <div className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'>
+      <p className='text-xs uppercase text-muted-foreground'>{label}</p>
+      <p className='text-lg font-semibold'>{value}</p>
+    </div>
   )
 }

@@ -1,6 +1,15 @@
 import { z } from 'zod'
 import { apiClient } from '@/lib/api-client'
-import { type UserStatus, createUserFromApi, type ApiUser } from '../data/schema'
+import { type UserStatus, createUserFromApi } from '../data/schema'
+
+const notificationSummarySchema = z
+  .object({
+    new_follower: z.array(z.unknown()).optional(),
+    daily_follower_progress_list: z.array(z.unknown()).optional(),
+    today_notification: z.array(z.unknown()).optional(),
+    last_week_notification: z.array(z.unknown()).optional(),
+  })
+  .optional()
 
 const apiUserDetailSchema = z.object({
   id: z.union([z.string(), z.number()]),
@@ -30,22 +39,33 @@ const apiUserDetailSchema = z.object({
     .optional(),
   followers: z.array(z.unknown()).optional(),
   following: z.array(z.unknown()).optional(),
+  followers_all: z.array(z.unknown()).optional(),
   muted_users: z.array(z.unknown()).optional(),
+  mutedUsers: z.array(z.unknown()).optional(),
   muting_users: z.array(z.unknown()).optional(),
   blocked_users: z.array(z.unknown()).optional(),
+  blockedUsers: z.array(z.unknown()).optional(),
   blocked_by_users: z.array(z.unknown()).optional(),
   sent_reports: z.array(z.unknown()).optional(),
+  sentReports: z.array(z.unknown()).optional(),
   received_reports: z.array(z.unknown()).optional(),
   alarm_setting: z.unknown().optional(),
+  alarmSetting: z.unknown().optional(),
   alarm_events: z.array(z.unknown()).optional(),
   daily_achievements: z.array(z.unknown()).optional(),
   intake_drink_logs: z.array(z.unknown()).optional(),
+  my_thumbler: z.unknown().optional(),
+  my_hydration: z.unknown().optional(),
+  my_notification: notificationSummarySchema,
+  my_today_drink_logs: z.array(z.unknown()).optional(),
 })
 
 const apiDetailResponseSchema = z.object({
   message: z.string().optional(),
   data: apiUserDetailSchema,
 })
+
+type ApiUserDetail = z.infer<typeof apiUserDetailSchema>
 
 export type UserDetail = {
   id: string
@@ -83,7 +103,7 @@ export type UserDetail = {
     dailyAchievements: number
     intakeDrinkLogs: number
   }
-  raw: ApiUser
+  raw: ApiUserDetail
 }
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -92,8 +112,27 @@ function parseDate(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-export async function getUserDetail(userId: string | number): Promise<UserDetail> {
-  const response = await apiClient.get(`/api/admin/users/${userId}`)
+export type GetUserDetailParams = {
+  type?: 'weekly' | 'monthly'
+  startDate?: string
+  endDate?: string
+}
+
+export async function getUserDetail(
+  userId: string | number,
+  params: GetUserDetailParams = {}
+): Promise<UserDetail> {
+  const { type = 'weekly', startDate, endDate } = params
+
+  const query: Record<string, string> = { type }
+  if (startDate && endDate) {
+    query.start_date = startDate
+    query.end_date = endDate
+  }
+
+  const response = await apiClient.get(`/api/admin/users/${userId}`, {
+    params: query,
+  })
   const parsed = apiDetailResponseSchema.safeParse(response.data)
 
   if (!parsed.success) {
