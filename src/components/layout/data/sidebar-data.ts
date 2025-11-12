@@ -4,7 +4,8 @@ import {
   AudioWaveform,
   Command,
   GalleryVerticalEnd,
-  Info
+  Info,
+  ShieldAlert,
 } from 'lucide-react'
 // import { ClerkLogo } from '@/assets/clerk-logo'
 import { type SidebarData } from '../types'
@@ -55,6 +56,11 @@ export const sidebarData: SidebarData = {
           title: 'Push Notifications',
           url: '/push-notifications',
           icon: Bell,
+        },
+        {
+          title: 'Reports',
+          url: '/reports',
+          icon: ShieldAlert,
         },
         // {
         //   title: 'Tasks',

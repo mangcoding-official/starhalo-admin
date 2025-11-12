@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
   CartesianGrid,
@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -46,9 +47,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { DisplayField } from './users-view-display-field.tsx'
+import { cn } from '@/lib/utils'
 import { type User } from '../data/schema'
 import { useUserDetailQuery } from '../hooks/use-user-detail-query'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 type UsersViewDialogProps = {
   currentRow?: User | null
@@ -60,10 +68,11 @@ type DrinkHistoryRow = {
   id: string
   date: Date
   total: number
-  target: number
   success: boolean
   percentage: number
 }
+
+type DetailSectionKey = 'overview' | 'hydration' | 'drinkHistory' | 'engagement' | 'notifications'
 
 function parseNullableDate(value?: string | null) {
   if (!value) return null
@@ -74,6 +83,7 @@ function parseNullableDate(value?: string | null) {
 export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDialogProps) {
   const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly')
   const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({})
+  const [openSection, setOpenSection] = useState<DetailSectionKey | null>('overview')
   const userId = currentRow?.id ?? null
   const hasCompleteRange = Boolean(dateRange.start && dateRange.end)
   const { data, isLoading, isFetching, error } = useUserDetailQuery(userId, open, {
@@ -84,7 +94,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
   const detail = data
 
-  console.log("detail", detail)
+  console.log(detail)
 
   const emailVerified =
     detail?.emailVerifiedAt && !Number.isNaN(detail.emailVerifiedAt.getTime())
@@ -98,9 +108,37 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
   const profile = detail?.profile
   const stats = detail?.stats
   const rawDetail = detail?.raw
+  const rawProfileUsername =
+    typeof profile?.username === 'string' ? profile.username : null
+  const rawDetailName =
+    typeof detail?.name === 'string' ? detail.name : null
+  const rawListUsername =
+    typeof currentRow?.username === 'string' ? currentRow.username : null
+  const normalizedProfileUsername =
+    rawProfileUsername && rawProfileUsername.trim().length > 0
+      ? rawProfileUsername.trim()
+      : null
+  const normalizedDetailName =
+    rawDetailName && rawDetailName.trim().length > 0
+      ? rawDetailName.trim()
+      : null
+  const normalizedListUsername =
+    rawListUsername && rawListUsername.trim().length > 0
+      ? rawListUsername.trim()
+      : null
+  const canonicalDisplayName =
+    normalizedProfileUsername ?? normalizedDetailName ?? normalizedListUsername ?? null
+  const headerSubtitle = canonicalDisplayName ?? 'User overview'
+  const handleToggleSection = (section: DetailSectionKey, isOpen: boolean) => {
+    setOpenSection(isOpen ? section : null)
+  }
 
   const followersAll = useMemo(
     () => extractRecordArray(rawDetail?.followers_all),
+    [rawDetail]
+  )
+  const followingList = useMemo(
+    () => extractRecordArray(rawDetail?.following),
     [rawDetail]
   )
   const mutedUsersList = useMemo(
@@ -265,14 +303,13 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
           id: `${entry.day ?? index}-${date.getTime()}`,
           date,
           total,
-          target,
           success: percentage >= 100,
           percentage,
         }
       })
       .filter((item): item is DrinkHistoryRow => Boolean(item))
 
-    return rows.sort((a, b) => b.date.getTime() - a.date.getTime())
+    return rows.sort((a, b) => a.date.getTime() - b.date.getTime())
   }, [hydrationReport, profile?.defaultTargetMl, profile?.targetMl, thumblerData])
 
   return (
@@ -280,11 +317,114 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
       <DialogContent className='sm:max-w-[1440px] max-h-[90vh] overflow-y-auto'>
         <DialogHeader className='text-start'>
           <DialogTitle>User Details</DialogTitle>
-          <DialogDescription>
-            {detail?.name ?? currentRow?.username ?? 'User overview'}
-          </DialogDescription>
+          <DialogDescription>{headerSubtitle}</DialogDescription>
         </DialogHeader>
 
+        <div className='space-y-4'>
+          <DetailAccordionSection
+            id='overview'
+            title='Account Overview'
+            description='Profile, status, and engagement stats.'
+            isOpen={openSection === 'overview'}
+            onToggle={handleToggleSection}
+          >
+            <div className='grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3'>
+              {error instanceof Error ? (
+                <div className='rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive md:col-span-2 xl:col-span-3'>
+                  {error.message}
+                </div>
+              ) : null}
+
+          <DisplayField
+            label='Username'
+            value={isPending ? 'Loading...' : canonicalDisplayName ?? '-'}
+          />
+          <DisplayField
+            label='Email'
+            value={isPending ? 'Loading...' : detail?.email ?? currentRow?.email ?? '-'}
+          />
+          <DisplayField
+            label='Status'
+            value={isPending ? 'Loading...' : detail?.status ?? '-'}
+          />
+          <DisplayField
+            label='Email Verified'
+            value={isPending ? 'Loading...' : emailVerified}
+          />
+
+          {profile ? (
+            <>
+              <div className='mt-2 text-sm font-semibold text-muted-foreground'>
+                Profile
+              </div>
+              <DisplayField label='Username' value={profile.username ?? '-'} />
+              <DisplayField label='Phone' value={profile.phone ?? '-'} />
+              <DisplayField label='Address' value={profile.address ?? '-'} />
+              <DisplayField label='Gender' value={profile.gender ?? '-'} />
+              <DisplayField label='Activity' value={profile.activity ?? '-'} />
+              <DisplayField
+                label='Target ML'
+                value={profile.targetMl ?? profile.defaultTargetMl ?? '-'}
+              />
+              <DisplayField
+                label='Weight'
+                value={
+                  profile.weight !== null && profile.weight !== undefined
+                    ? `${profile.weight} kg`
+                    : '-'
+                }
+              />
+              <DisplayField
+                label='Height'
+                value={
+                  profile.height !== null && profile.height !== undefined
+                    ? `${profile.height} cm`
+                    : '-'
+                }
+              />
+            </>
+          ) : null}
+
+          {stats ? (
+            <>
+              <div className='mt-2 text-sm font-semibold text-muted-foreground'>
+                Engagement
+              </div>
+              <DisplayField label='Followers' value={stats.followers.toString()} />
+              <DisplayField label='Following' value={stats.following.toString()} />
+              <DisplayField label='Muted Users' value={stats.mutedUsers.toString()} />
+              <DisplayField label='Muting Users' value={stats.mutingUsers.toString()} />
+              <DisplayField label='Blocked Users' value={stats.blockedUsers.toString()} />
+              <DisplayField
+                label='Blocked By Users'
+                value={stats.blockedByUsers.toString()}
+              />
+              <DisplayField label='Sent Reports' value={stats.sentReports.toString()} />
+              <DisplayField
+                label='Received Reports'
+                value={stats.receivedReports.toString()}
+              />
+              <DisplayField label='Alarm Events' value={stats.alarmEvents.toString()} />
+              <DisplayField
+                label='Daily Achievements'
+                value={stats.dailyAchievements.toString()}
+              />
+              <DisplayField
+                label='Intake Drink Logs'
+                value={stats.intakeDrinkLogs.toString()}
+              />
+            </>
+          ) : null}
+            </div>
+          </DetailAccordionSection>
+
+          <DetailAccordionSection
+            id='hydration'
+            title='Hydration Insights'
+            description='Daily progress, history, and daily logs.'
+            isOpen={openSection === 'hydration'}
+            onToggle={handleToggleSection}
+          >
         {hydrationOverview ? (
           <Card className='border border-border/60 bg-card/60'>
             <CardHeader className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
@@ -515,362 +655,6 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
             ) : null}
           </div>
         ) : null}
-        
-        {drinkHistory.length ? (
-          <Card className='border border-border/60 bg-card/60'>
-            <CardHeader className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
-              <div>
-                <CardTitle>Drink History</CardTitle>
-                <CardDescription>
-                  Insights from recent hydration achievements.
-                </CardDescription>
-              </div>
-              <span className='text-sm font-medium text-muted-foreground'>
-                Showing last {drinkHistory.length} day{drinkHistory.length > 1 ? 's' : ''}
-              </span>
-            </CardHeader>
-            <CardContent className='p-0'>
-              <div className='overflow-x-auto'>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead className='text-right'>Intake</TableHead>
-                      <TableHead className='text-right'>Target</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {drinkHistory.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>
-                          <div className='font-semibold'>
-                            {format(entry.date, 'dd MMM yyyy')}
-                          </div>
-                          <div className='text-xs text-muted-foreground'>
-                            {format(entry.date, 'EEEE')}
-                          </div>
-                        </TableCell>
-                        <TableCell className='text-right'>
-                          {entry.total.toLocaleString()} <span className='text-xs text-muted-foreground'>ml</span>
-                        </TableCell>
-                        <TableCell className='text-right'>
-                          {entry.target > 0 ? (
-                            <>
-                              {entry.target.toLocaleString()} <span className='text-xs text-muted-foreground'>ml</span>
-                            </>
-                          ) : (
-                            <span className='text-muted-foreground'>-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className='flex flex-col'>
-                            <span
-                              className={
-                                entry.success
-                                  ? 'font-medium text-emerald-600 dark:text-emerald-400'
-                                  : 'font-medium text-muted-foreground'
-                              }
-                            >
-                              {entry.success ? 'Target met' : 'In progress'}
-                            </span>
-                            {entry.percentage !== null ? (
-                              <span className='text-xs text-muted-foreground'>
-                                {entry.percentage}% of target
-                              </span>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {(alarmSettingData || followersAll.length || mutedUsersList.length || blockedUsersList.length || sentReportsList.length) ? (
-          <div className='grid grid-cols-1 gap-4 py-4 lg:grid-cols-2'>
-            {alarmSettingData ? (
-              <Card className='border border-border/60 bg-card/60'>
-                <CardHeader>
-                  <CardTitle>Alarm Settings</CardTitle>
-                  <CardDescription>Most recent hydrated alarm configuration.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <dl className='space-y-2 text-sm'>
-                    {Object.entries(alarmSettingData).map(([key, value]) => (
-                      <div key={key} className='flex items-start justify-between gap-4 rounded-md border border-border/40 bg-muted/10 px-3 py-2'>
-                        <dt className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-                          {formatKeyLabel(key)}
-                        </dt>
-                        <dd className='flex-1 text-right text-sm font-semibold' style={{
-                          wordBreak: "break-all"
-                        }}>
-                          {formatValueDisplay(value)}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {followersAll.length ? (
-              <Card className='border border-border/60 bg-card/60'>
-                <CardHeader>
-                  <CardTitle>Followers</CardTitle>
-                  <CardDescription>Showing the latest {Math.min(followersAll.length, 8)} followers</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='space-y-2 text-sm'>
-                    {followersAll.slice(0, 8).map((item, index) => {
-                      const user = formatUserListItem(item)
-                      return (
-                        <li
-                          key={`follower-${user.primary}-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{user.primary}</div>
-                          {user.secondary ? (
-                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                    {followersAll.length > 8 ? (
-                      <li className='text-xs text-muted-foreground'>
-                        +{followersAll.length - 8} more followers
-                      </li>
-                    ) : null}
-                  </ul>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {mutedUsersList.length ? (
-              <Card className='border border-border/60 bg-card/60'>
-                <CardHeader>
-                  <CardTitle>Muted Users</CardTitle>
-                  <CardDescription>Users currently muted by this account.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='space-y-2 text-sm'>
-                    {mutedUsersList.slice(0, 8).map((item, index) => {
-                      const user = formatUserListItem(item)
-                      return (
-                        <li
-                          key={`muted-${user.primary}-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{user.primary}</div>
-                          {user.secondary ? (
-                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                    {mutedUsersList.length > 8 ? (
-                      <li className='text-xs text-muted-foreground'>
-                        +{mutedUsersList.length - 8} more muted users
-                      </li>
-                    ) : null}
-                  </ul>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {blockedUsersList.length ? (
-              <Card className='border border-border/60 bg-card/60'>
-                <CardHeader>
-                  <CardTitle>Blocked Users</CardTitle>
-                  <CardDescription>Accounts blocked by this user.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='space-y-2 text-sm'>
-                    {blockedUsersList.slice(0, 8).map((item, index) => {
-                      const user = formatUserListItem(item)
-                      return (
-                        <li
-                          key={`blocked-${user.primary}-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{user.primary}</div>
-                          {user.secondary ? (
-                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                    {blockedUsersList.length > 8 ? (
-                      <li className='text-xs text-muted-foreground'>
-                        +{blockedUsersList.length - 8} more blocked users
-                      </li>
-                    ) : null}
-                  </ul>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {sentReportsList.length ? (
-              <Card className='border border-border/60 bg-card/60 lg:col-span-2'>
-                <CardHeader>
-                  <CardTitle>Sent Reports</CardTitle>
-                  <CardDescription>Latest moderation reports filed by this user.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='space-y-2 text-sm'>
-                    {sentReportsList.slice(0, 6).map((entry, index) => {
-                      const reason =
-                        getStringField(entry, ['reason', 'category', 'type']) ?? `Report #${index + 1}`
-                      const targetUser = getRecordField(entry, ['reported_user', 'target_user', 'user'])
-                      const targetLabel = targetUser ? formatUserListItem(targetUser).primary : undefined
-                      const createdAt = formatTimestamp(getStringField(entry, ['created_at', 'submitted_at']))
-                      return (
-                        <li
-                          key={`report-${reason}-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{reason}</div>
-                          {targetLabel ? (
-                            <div className='text-xs text-muted-foreground'>Target: {targetLabel}</div>
-                          ) : null}
-                          {createdAt ? (
-                            <div className='text-xs text-muted-foreground'>Filed {createdAt}</div>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                    {sentReportsList.length > 6 ? (
-                      <li className='text-xs text-muted-foreground'>
-                        +{sentReportsList.length - 6} additional reports
-                      </li>
-                    ) : null}
-                  </ul>
-                </CardContent>
-              </Card>
-            ) : null}
-          </div>
-        ) : null}
-
-        {notificationSummary || newFollowersList.length || todayNotifications.length || lastWeekNotifications.length ? (
-          <Card className='border border-border/60 bg-card/60'>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>Recent engagement and follower updates.</CardDescription>
-            </CardHeader>
-            <CardContent className='space-y-6 text-sm'>
-              {newFollowersList.length ? (
-                <section>
-                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                    New Followers
-                  </div>
-                  <ul className='space-y-2'>
-                    {newFollowersList.slice(0, 6).map((item, index) => {
-                      const user = formatUserListItem(item)
-                      return (
-                        <li
-                          key={`notif-new-${user.primary}-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{user.primary}</div>
-                          {user.secondary ? (
-                            <div className='text-xs text-muted-foreground'>{user.secondary}</div>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </section>
-              ) : null}
-
-              {dailyFollowerProgressList.length ? (
-                <section>
-                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                    Follower Progress
-                  </div>
-                  <ul className='space-y-2'>
-                    {dailyFollowerProgressList.slice(0, 5).map((item, index) => {
-                      const follower = getRecordField(item, ['user'])
-                      const user = formatUserListItem(follower ?? item)
-                      const progress = getNumberField(item, ['progress_percentage'])
-                      return (
-                        <li
-                          key={`progress-${user.primary}-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{user.primary}</div>
-                          <div className='text-xs text-muted-foreground'>
-                            Progress: {progress !== undefined ? `${progress}%` : 'n/a'}
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </section>
-              ) : null}
-
-              {todayNotifications.length ? (
-                <section>
-                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                    Today
-                  </div>
-                  <ul className='space-y-2'>
-                    {todayNotifications.slice(0, 5).map((item, index) => {
-                      const title =
-                        getStringField(item, ['title', 'pattern']) ??
-                        `Notification #${index + 1}`
-                      const timestamp = formatTimestamp(getStringField(item, ['created_at']))
-                      return (
-                        <li
-                          key={`today-notif-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{title}</div>
-                          {timestamp ? (
-                            <div className='text-xs text-muted-foreground'>{timestamp}</div>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </section>
-              ) : null}
-
-              {lastWeekNotifications.length ? (
-                <section>
-                  <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                    Last Week
-                  </div>
-                  <ul className='space-y-2'>
-                    {lastWeekNotifications.slice(0, 5).map((item, index) => {
-                      const title =
-                        getStringField(item, ['title', 'pattern']) ??
-                        `Notification #${index + 1}`
-                      const timestamp = formatTimestamp(getStringField(item, ['created_at']))
-                      return (
-                        <li
-                          key={`lastweek-notif-${index}`}
-                          className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                        >
-                          <div className='font-semibold'>{title}</div>
-                          {timestamp ? (
-                            <div className='text-xs text-muted-foreground'>{timestamp}</div>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </section>
-              ) : null}
-
-              {!newFollowersList.length && !dailyFollowerProgressList.length && !todayNotifications.length && !lastWeekNotifications.length ? (
-                <p className='text-sm text-muted-foreground'>No notification data available.</p>
-              ) : null}
-            </CardContent>
-          </Card>
-        ) : null}
 
         {todayDrinkLogs.length ? (
           <Card className='border border-border/60 bg-card/60'>
@@ -886,6 +670,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                     <TableHead>Server Time</TableHead>
                     <TableHead className='text-right'>Intake</TableHead>
                     <TableHead className='text-right'>Target</TableHead>
+                    <TableHead className='text-right'>Cumulative</TableHead>
                     <TableHead className='text-right'>Progress</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -895,6 +680,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                     const serverTime = getStringField(log, ['server_time', 'created_at'])
                     const intake = getNumberField(log, ['intake_ml', 'intake', 'volume_ml'])
                     const target = getNumberField(log, ['target_ml'])
+                    const cumulative = getNumberField(log, ['cummulative_ml', 'cumulative_ml'])
                     const progress = getNumberField(log, ['success_percentage', 'progress_percentage'])
                     return (
                       <TableRow key={`today-log-${index}`}>
@@ -907,6 +693,9 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                           {target !== undefined ? `${target} ml` : '—'}
                         </TableCell>
                         <TableCell className='text-right'>
+                          {cumulative !== undefined ? `${cumulative} ml` : '—'}
+                        </TableCell>
+                        <TableCell className='text-right'>
                           {progress !== undefined ? `${progress}%` : '—'}
                         </TableCell>
                       </TableRow>
@@ -917,129 +706,429 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
             </CardContent>
           </Card>
         ) : null}
+          </DetailAccordionSection>
 
-        <div className='grid grid-cols-1 gap-3 py-4 md:grid-cols-2 xl:grid-cols-3'>
-          {error instanceof Error ? (
-            <div className='rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive'>
-              {error.message}
-            </div>
-          ) : null}
+        <DetailAccordionSection
+          id='drinkHistory'
+          title='Drink History'
+          description='Aggregated progress for the selected range.'
+          isOpen={openSection === 'drinkHistory'}
+          onToggle={handleToggleSection}
+        >
+          {drinkHistory.length ? (
+            <Card className='border border-border/60 bg-card/60'>
+              <CardHeader className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
+                <div>
+                  <CardTitle>Daily Breakdown</CardTitle>
+                  <CardDescription>Insights from recent hydration achievements.</CardDescription>
+                </div>
+                <span className='text-sm font-medium text-muted-foreground'>
+                  Showing last {drinkHistory.length} day{drinkHistory.length > 1 ? 's' : ''}
+                </span>
+              </CardHeader>
+              <CardContent className='p-0'>
+                <div className='overflow-x-auto'>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead className='text-right'>Intake</TableHead>
+                        <TableHead>Progress</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {drinkHistory.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell>
+                            <div className='font-semibold'>
+                              {format(entry.date, 'dd MMM yyyy')}
+                            </div>
+                            <div className='text-xs text-muted-foreground'>
+                              {format(entry.date, 'EEEE')}
+                            </div>
+                          </TableCell>
+                          <TableCell className='text-right'>
+                            {entry.total.toLocaleString()}{' '}
+                            <span className='text-xs text-muted-foreground'>ml</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className='flex items-center gap-2'>
+                              <span className='font-semibold'>
+                                {entry.percentage ?? 0}%
+                              </span>
+                              {entry.success ? (
+                                <span className='text-xs font-medium text-emerald-600 dark:text-emerald-400'>
+                                  Target Met
+                                </span>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className='border border-border/60 bg-card/60'>
+              <CardHeader>
+                <CardTitle>Daily Breakdown</CardTitle>
+                <CardDescription>No historical records for the selected range.</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+        </DetailAccordionSection>
 
-          <DisplayField
-            label='Name'
-            value={
-              isPending
-                ? 'Loading...'
-                : detail?.name ?? currentRow?.username ?? '-'
-            }
-          />
-          <DisplayField
-            label='Email'
-            value={isPending ? 'Loading...' : detail?.email ?? currentRow?.email ?? '-'}
-          />
-          <DisplayField
-            label='Status'
-            value={isPending ? 'Loading...' : detail?.status ?? '-'}
-          />
-          <DisplayField
-            label='Email Verified'
-            value={isPending ? 'Loading...' : emailVerified}
-          />
+        <DetailAccordionSection
+            id='engagement'
+            title='Engagement & Controls'
+            description='Alarm settings, relationships, and moderation history.'
+            isOpen={openSection === 'engagement'}
+            onToggle={handleToggleSection}
+          >
+            {(alarmSettingData ||
+              followersAll.length ||
+              followingList.length ||
+              mutedUsersList.length ||
+              blockedUsersList.length ||
+              sentReportsList.length) ? (
+              <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
+                {alarmSettingData ? (
+                  <Card className='border border-border/60 bg-card/60'>
+                    <CardHeader>
+                      <CardTitle>Alarm Settings</CardTitle>
+                      <CardDescription>Most recent hydrated alarm configuration.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className='space-y-2 text-sm'>
+                        {Object.entries(alarmSettingData).map(([key, value]) => (
+                          <div
+                            key={key}
+                            className='flex items-start justify-between gap-4 rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                          >
+                            <dt className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                              {formatKeyLabel(key)}
+                            </dt>
+                            <dd
+                              className='flex-1 text-right text-sm font-semibold flex flex-col items-end gap-1'
+                              style={{
+                                wordBreak: 'break-word',
+                              }}
+                            >
+                              {renderAlarmValue(key, value)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </CardContent>
+                  </Card>
+                ) : null}
 
-          {profile ? (
-            <>
-              <div className='mt-2 text-sm font-semibold text-muted-foreground'>
-                Profile
+                {followersAll.length ? (
+                  <Card className='border border-border/60 bg-card/60'>
+                    <CardHeader>
+                      <CardTitle>Followers</CardTitle>
+                      <CardDescription>
+                        Showing the latest {Math.min(followersAll.length, 8)} followers
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className='space-y-2 text-sm'>
+                        {followersAll.slice(0, 8).map((item, index) => {
+                          const user = formatUserListItem(item)
+                          return (
+                            <li
+                              key={`follower-${user.primary}-${index}`}
+                              className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                            >
+                              <div className='font-semibold'>{user.primary}</div>
+                              {user.secondary ? (
+                                <div className='text-xs text-muted-foreground'>{user.secondary}</div>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                        {followersAll.length > 8 ? (
+                          <li className='text-xs text-muted-foreground'>
+                            +{followersAll.length - 8} more followers
+                          </li>
+                        ) : null}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {followingList.length ? (
+                  <Card className='border border-border/60 bg-card/60'>
+                    <CardHeader>
+                      <CardTitle>Friends</CardTitle>
+                      <CardDescription>
+                        Showing the latest {Math.min(followingList.length, 8)} people they follow
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className='space-y-2 text-sm'>
+                        {followingList.slice(0, 8).map((item, index) => {
+                          const user = formatUserListItem(item)
+                          return (
+                            <li
+                              key={`following-${user.primary}-${index}`}
+                              className='flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                            >
+                              <Avatar className='h-10 w-10'>
+                                <AvatarImage src={user.avatarUrl ?? undefined} alt={user.primary} />
+                                <AvatarFallback>{user.fallback}</AvatarFallback>
+                              </Avatar>
+                              <div className='flex flex-col'>
+                                <span className='font-semibold'>{user.primary}</span>
+                                {user.secondary ? (
+                                  <span className='text-xs text-muted-foreground'>{user.secondary}</span>
+                                ) : null}
+                              </div>
+                            </li>
+                          )
+                        })}
+                        {followingList.length > 8 ? (
+                          <li className='text-xs text-muted-foreground'>
+                            +{followingList.length - 8} more friends
+                          </li>
+                        ) : null}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {mutedUsersList.length ? (
+                  <Card className='border border-border/60 bg-card/60'>
+                    <CardHeader>
+                      <CardTitle>Muted Users</CardTitle>
+                      <CardDescription>Users currently muted by this account.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className='space-y-2 text-sm'>
+                        {mutedUsersList.slice(0, 8).map((item, index) => {
+                          const user = formatUserListItem(item)
+                          return (
+                            <li
+                              key={`muted-${user.primary}-${index}`}
+                              className='flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                            >
+                              <Avatar className='h-10 w-10'>
+                                <AvatarImage src={user.avatarUrl ?? undefined} alt={user.primary} />
+                                <AvatarFallback>{user.fallback}</AvatarFallback>
+                              </Avatar>
+                              <div className='flex flex-col'>
+                                <span className='font-semibold'>{user.primary}</span>
+                                {user.secondary ? (
+                                  <span className='text-xs text-muted-foreground'>{user.secondary}</span>
+                                ) : null}
+                              </div>
+                            </li>
+                          )
+                        })}
+                        {mutedUsersList.length > 8 ? (
+                          <li className='text-xs text-muted-foreground'>
+                            +{mutedUsersList.length - 8} more muted users
+                          </li>
+                        ) : null}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {blockedUsersList.length ? (
+                  <Card className='border border-border/60 bg-card/60'>
+                    <CardHeader>
+                      <CardTitle>Blocked Users</CardTitle>
+                      <CardDescription>Accounts blocked by this user.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className='space-y-2 text-sm'>
+                        {blockedUsersList.slice(0, 8).map((item, index) => {
+                          const user = formatUserListItem(item)
+                          return (
+                            <li
+                              key={`blocked-${user.primary}-${index}`}
+                              className='flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                            >
+                              <Avatar className='h-10 w-10'>
+                                <AvatarImage src={user.avatarUrl ?? undefined} alt={user.primary} />
+                                <AvatarFallback>{user.fallback}</AvatarFallback>
+                              </Avatar>
+                              <div className='flex flex-col'>
+                                <span className='font-semibold'>{user.primary}</span>
+                                {user.secondary ? (
+                                  <span className='text-xs text-muted-foreground'>{user.secondary}</span>
+                                ) : null}
+                              </div>
+                            </li>
+                          )
+                        })}
+                        {blockedUsersList.length > 8 ? (
+                          <li className='text-xs text-muted-foreground'>
+                            +{blockedUsersList.length - 8} more blocked users
+                          </li>
+                        ) : null}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {sentReportsList.length ? (
+                  <Card className='border border-border/60 bg-card/60 lg:col-span-2'>
+                    <CardHeader>
+                      <CardTitle>Sent Reports</CardTitle>
+                      <CardDescription>Latest moderation reports filed by this user.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className='space-y-2 text-sm'>
+                        {sentReportsList.slice(0, 6).map((entry, index) => {
+                          const reason =
+                            getStringField(entry, ['reason', 'category', 'type']) ?? `Report #${index + 1}`
+                          const targetUser = getRecordField(entry, ['reported_user', 'target_user', 'user'])
+                          const targetLabel = targetUser ? formatUserListItem(targetUser).primary : undefined
+                          const createdAt = formatTimestamp(getStringField(entry, ['created_at', 'submitted_at']))
+                          return (
+                            <li
+                              key={`report-${reason}-${index}`}
+                              className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                            >
+                              <div className='font-semibold'>{reason}</div>
+                              {targetLabel ? (
+                                <div className='text-xs text-muted-foreground'>Target: {targetLabel}</div>
+                              ) : null}
+                              {createdAt ? (
+                                <div className='text-xs text-muted-foreground'>Filed {createdAt}</div>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                        {sentReportsList.length > 6 ? (
+                          <li className='text-xs text-muted-foreground'>
+                            +{sentReportsList.length - 6} additional reports
+                          </li>
+                        ) : null}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
-              <DisplayField label='Username' value={profile.username ?? '-'} />
-              <DisplayField label='Phone' value={profile.phone ?? '-'} />
-              <DisplayField label='Address' value={profile.address ?? '-'} />
-              <DisplayField label='Gender' value={profile.gender ?? '-'} />
-              <DisplayField
-                label='Activity'
-                value={profile.activity ?? '-'}
-              />
-              <DisplayField
-                label='Target ML'
-                value={
-                  profile.targetMl ?? profile.defaultTargetMl ?? '-'
-                }
-              />
-              <DisplayField
-                label='Weight'
-                value={
-                  profile.weight !== null && profile.weight !== undefined
-                    ? `${profile.weight} kg`
-                    : '-'
-                }
-              />
-              <DisplayField
-                label='Height'
-                value={
-                  profile.height !== null && profile.height !== undefined
-                    ? `${profile.height} cm`
-                    : '-'
-                }
-              />
-            </>
-          ) : null}
+            ) : (
+              <p className='text-sm text-muted-foreground'>No engagement or moderation data available.</p>
+            )}
+          </DetailAccordionSection>
 
-          {stats ? (
-            <>
-              <div className='mt-2 text-sm font-semibold text-muted-foreground'>
-                Engagement
-              </div>
-              <DisplayField label='Followers' value={stats.followers.toString()} />
-              <DisplayField label='Following' value={stats.following.toString()} />
-              <DisplayField
-                label='Muted Users'
-                value={stats.mutedUsers.toString()}
-              />
-              <DisplayField
-                label='Muting Users'
-                value={stats.mutingUsers.toString()}
-              />
-              <DisplayField
-                label='Blocked Users'
-                value={stats.blockedUsers.toString()}
-              />
-              <DisplayField
-                label='Blocked By Users'
-                value={stats.blockedByUsers.toString()}
-              />
-              <DisplayField
-                label='Sent Reports'
-                value={stats.sentReports.toString()}
-              />
-              <DisplayField
-                label='Received Reports'
-                value={stats.receivedReports.toString()}
-              />
-              <DisplayField
-                label='Alarm Events'
-                value={stats.alarmEvents.toString()}
-              />
-              <DisplayField
-                label='Daily Achievements'
-                value={stats.dailyAchievements.toString()}
-              />
-              <DisplayField
-                label='Intake Drink Logs'
-                value={stats.intakeDrinkLogs.toString()}
-              />
-            </>
-          ) : null}
+          <DetailAccordionSection
+            id='notifications'
+            title='Notifications'
+            description='Follower activity and delivery logs.'
+            isOpen={openSection === 'notifications'}
+            onToggle={handleToggleSection}
+          >
+            {notificationSummary ||
+            newFollowersList.length ||
+            todayNotifications.length ||
+            lastWeekNotifications.length ? (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader>
+                  <CardTitle>Notifications</CardTitle>
+                  <CardDescription>Recent engagement and follower updates.</CardDescription>
+                </CardHeader>
+                <CardContent className='space-y-6 text-sm'>
+                  {newFollowersList.length ? (
+                    <section>
+                      <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                        New Followers
+                      </div>
+                      <ul className='space-y-2'>
+                        {newFollowersList.slice(0, 6).map((item, index) => {
+                          const user = formatUserListItem(item)
+                          return (
+                            <li
+                              key={`notif-new-${user.primary}-${index}`}
+                              className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                            >
+                              <div className='font-semibold'>{user.primary}</div>
+                              {user.secondary ? (
+                                <div className='text-xs text-muted-foreground'>{user.secondary}</div>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
+                  ) : null}
 
-          {/* {detail ? (
-            <details className='rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm shadow-sm transition open:shadow-sm'>
-              <summary className='cursor-pointer font-medium text-muted-foreground'>
-                Raw data
-              </summary>
-              <pre className='mt-2 max-h-60 overflow-auto rounded-md bg-background p-2 text-xs'>
-                {JSON.stringify(detail.raw, null, 2)}
-              </pre>
-            </details>
-          ) : null} */}
+                  {dailyFollowerProgressList.length ? (
+                    <section>
+                      <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                        Follower Progress
+                      </div>
+                      <ul className='space-y-3'>
+                        {dailyFollowerProgressList.slice(0, 5).map((item, index) => {
+                          const follower = getRecordField(item, ['user'])
+                          const user = formatUserListItem(follower ?? item)
+                          const progress = getNumberField(item, ['progress_percentage'])
+                          const timestamp = formatTimestamp(getStringField(item, ['created_at', 'updated_at']))
+                          return (
+                            <li
+                              key={`progress-${user.primary}-${index}`}
+                              className='flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                            >
+                              <FollowerProgressBadge progress={progress} user={user} />
+                              <div className='flex flex-1 flex-col'>
+                                <span className='font-semibold'>{user.primary}</span>
+                                <span className='text-xs text-muted-foreground'>
+                                  {progress !== undefined ? `${clampPercentage(progress)}% hydration progress` : 'Progress unavailable'}
+                                </span>
+                                {timestamp ? (
+                                  <span className='text-[10px] text-muted-foreground'>{timestamp}</span>
+                                ) : null}
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
+                  ) : null}
+
+                  {todayNotifications.length ? (
+                    <NotificationsListSection
+                      title='Today'
+                      items={todayNotifications}
+                      fallbackLabel='Today notification'
+                    />
+                  ) : null}
+
+                  {lastWeekNotifications.length ? (
+                    <NotificationsListSection
+                      title='Last Week'
+                      items={lastWeekNotifications}
+                      fallbackLabel='Last week notification'
+                    />
+                  ) : null}
+
+                  {!newFollowersList.length &&
+                  !dailyFollowerProgressList.length &&
+                  !todayNotifications.length &&
+                  !lastWeekNotifications.length ? (
+                    <p className='text-sm text-muted-foreground'>No notification data available.</p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className='border border-border/60 bg-card/60'>
+                <CardHeader>
+                  <CardTitle>Notifications</CardTitle>
+                  <CardDescription>Recent engagement and follower updates.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className='text-sm text-muted-foreground'>No notification data available.</p>
+                </CardContent>
+              </Card>
+            )}
+          </DetailAccordionSection>
         </div>
 
         <DialogFooter>
@@ -1067,7 +1156,11 @@ function getStringField(record: UnknownRecord, keys: string[]): string | undefin
   for (const key of keys) {
     const raw = record[key]
     if (typeof raw === 'string' && raw.trim().length > 0) {
-      return raw.trim()
+      const trimmed = raw.trim()
+      if (['null', 'undefined', 'none'].includes(trimmed.toLowerCase())) {
+        continue
+      }
+      return trimmed
     }
   }
   return undefined
@@ -1099,23 +1192,248 @@ function getRecordField(record: UnknownRecord, keys: string[]): UnknownRecord | 
   return undefined
 }
 
-function formatUserListItem(entry: UnknownRecord | null | undefined): { primary: string; secondary?: string } {
+type FormattedUserListItem = {
+  primary: string
+  secondary?: string
+  avatarUrl?: string | null
+  fallback: string
+}
+
+function formatUserListItem(entry: UnknownRecord | null | undefined): FormattedUserListItem {
   if (!entry) {
-    return { primary: 'Unknown user' }
+    return { primary: 'Unknown user', fallback: 'UU' }
   }
+
+  const profileRecord =
+    getRecordField(entry, ['profile']) ??
+    getRecordField(entry, ['user']) ??
+    getRecordField(entry, ['target'])
+
+  const profileUsername = profileRecord
+    ? getStringField(profileRecord, ['username', 'name', 'full_name', 'display_name'])
+    : undefined
+
+  const entryUsername = getStringField(entry, ['username', 'name', 'email', 'title'])
+
   const primary =
-    getStringField(entry, ['username', 'name', 'email', 'title']) ??
+    profileUsername ??
+    entryUsername ??
     (typeof entry.id === 'string' || typeof entry.id === 'number'
       ? `User ${entry.id}`
       : 'Unknown user')
-  const secondary = getStringField(entry, ['email', 'pattern', 'role'])
-  return { primary, secondary }
+
+  const secondary =
+    (profileRecord &&
+      (getStringField(profileRecord, ['email']) ?? getStringField(profileRecord, ['role']))) ??
+    getStringField(entry, ['email', 'pattern', 'role'])
+
+  const avatarUrl =
+    (profileRecord &&
+      (getStringField(profileRecord, ['avatar_url', 'avatar', 'photo', 'image', 'picture']))) ??
+    getStringField(entry, ['avatar_url', 'avatar', 'photo', 'image', 'picture'])
+
+  const fallback = getInitials(primary)
+
+  return { primary, secondary, avatarUrl, fallback }
+}
+
+type NotificationsListSectionProps = {
+  title: string
+  items: UnknownRecord[]
+  fallbackLabel: string
+}
+
+function NotificationsListSection({
+  title,
+  items,
+  fallbackLabel,
+}: NotificationsListSectionProps) {
+  if (!items.length) return null
+
+  return (
+    <section>
+      <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+        {title}
+      </div>
+      <ul className='space-y-2'>
+        {items.slice(0, 5).map((item, index) => {
+          const identifier =
+            getStringField(item, ['id']) ?? getStringField(item, ['uuid']) ?? `${fallbackLabel}-${index}`
+          return (
+            <NotificationListItem
+              key={identifier}
+              entry={item}
+              fallbackTitle={`${fallbackLabel} #${index + 1}`}
+            />
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+type NotificationListItemProps = {
+  entry: UnknownRecord
+  fallbackTitle: string
+}
+
+function NotificationListItem({ entry, fallbackTitle }: NotificationListItemProps) {
+  const payload = getRecordField(entry, ['data'])
+  const actorRecord = getRecordField(entry, ['user']) ?? (payload ? getRecordField(payload, ['user']) : undefined)
+  const actor = formatUserListItem(actorRecord ?? entry)
+
+  const senderName =
+    getStringField(payload ?? {}, ['sender_name', 'senderName', 'sender']) ?? undefined
+
+  const displayName = senderName && senderName.trim().length > 0 ? senderName.trim() : actor.primary
+
+  const rawMessage =
+    getStringField(payload ?? {}, ['message', 'content']) ??
+    getStringField(entry, ['pattern', 'title', 'message', 'content']) ??
+    fallbackTitle
+
+  const message = rawMessage.trim().length > 0 ? rawMessage.trim() : fallbackTitle
+
+  const timestamp =
+    formatTimestamp(
+      getStringField(entry, ['created_at', 'timestamp', 'time']) ??
+        getStringField(payload ?? {}, ['created_at', 'time'])
+    ) ?? undefined
+
+  const typeHint =
+    getStringField(payload ?? {}, ['type']) ?? getStringField(entry, ['type'])
+
+  const iconHint = getNotificationIconHint(message, typeHint)
+
+  return (
+    <li className='flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 px-3 py-2'>
+      <Avatar className='h-12 w-12 border border-border/50 bg-background'>
+        <AvatarImage src={actor.avatarUrl ?? undefined} alt={actor.primary} />
+        <AvatarFallback>{actor.fallback}</AvatarFallback>
+      </Avatar>
+      <div className='flex flex-1 flex-col'>
+        <p className='text-sm leading-tight'>
+          <span className='font-semibold'>{displayName}</span>{' '}
+          <span className='text-muted-foreground'>{message}</span>
+        </p>
+        {timestamp ? (
+          <span className='text-xs text-muted-foreground'>{timestamp}</span>
+        ) : null}
+      </div>
+      <span className='text-xs font-medium text-muted-foreground whitespace-nowrap'>
+        {iconHint}
+      </span>
+    </li>
+  )
+}
+
+type FollowerProgressBadgeProps = {
+  progress?: number
+  user: FormattedUserListItem
+}
+
+function FollowerProgressBadge({ progress, user }: FollowerProgressBadgeProps) {
+  const normalized = clampPercentage(progress)
+  const angle = (normalized / 100) * 360
+  const progressColor = 'var(--primary)'
+  const trackColor = 'var(--muted)'
+
+  return (
+    <div className='relative h-14 w-14'>
+      <div
+        className='absolute inset-0 rounded-full border border-border/40'
+        style={{
+          background: `conic-gradient(${progressColor} ${angle}deg, ${trackColor} ${angle}deg 360deg)`,
+        }}
+        aria-hidden='true'
+      />
+      <div className='absolute inset-1 rounded-full bg-background flex items-center justify-center'>
+        <Avatar className='h-full w-full border border-border/40'>
+          <AvatarImage src={user.avatarUrl ?? undefined} alt={user.primary} />
+          <AvatarFallback>{user.fallback}</AvatarFallback>
+        </Avatar>
+      </div>
+      <span className='absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-border/40 bg-background px-1 text-[10px] font-semibold text-muted-foreground'>
+        {normalized}%
+      </span>
+    </div>
+  )
 }
 
 function formatKeyLabel(key: string): string {
   return key
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function renderAlarmValue(key: string, value: unknown): ReactNode {
+  const normalizedKey = key.toLowerCase()
+  const renderInline = (text: string) => (
+    <span className='inline-flex w-full justify-end text-right'>{text}</span>
+  )
+
+  if (Array.isArray(value) && normalizedKey === 'times') {
+    const times = value
+      .map((entry) => {
+        if (entry === null || typeof entry === 'undefined') return null
+        if (typeof entry === 'string' || typeof entry === 'number') {
+          const trimmed = String(entry).trim()
+          return trimmed.length > 0 ? trimmed : null
+        }
+        return null
+      })
+      .filter((entry): entry is string => Boolean(entry))
+
+    if (!times.length) {
+      return renderInline('—')
+    }
+
+    return (
+      <div className='grid w-full grid-cols-3 gap-1 justify-items-end'>
+        {times.map((time, index) => (
+          <span
+            key={`${time}-${index}`}
+            className='w-full rounded-md border border-border/40 bg-muted/50 px-2 py-0.5 text-center text-xs font-semibold text-foreground'
+          >
+            {time}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  if (typeof value === 'string') {
+    const formattedDate = formatAlarmDate(value)
+    if (formattedDate) {
+      return renderInline(formattedDate)
+    }
+    return renderInline(value)
+  }
+
+  return renderInline(formatValueDisplay(value))
+}
+
+function formatAlarmDate(value: string): string | null {
+  if (!/[T/-]/.test(value)) {
+    return null
+  }
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+  return format(parsed, 'dd MMM yyyy')
+}
+
+function getInitials(value: string): string {
+  const trimmed = value?.trim()
+  if (!trimmed) return 'UU'
+  const parts = trimmed.split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'UU'
+  const initials = parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+  return initials || 'UU'
 }
 
 function formatValueDisplay(value: unknown): string {
@@ -1138,6 +1456,103 @@ function formatValueDisplay(value: unknown): string {
   return JSON.stringify(value)
 }
 
+function clampPercentage(value?: number | null): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 0
+  }
+  const scaled = value <= 1 && value >= 0 ? value * 100 : value
+  return Math.max(0, Math.min(Math.round(scaled), 100))
+}
+
+function getNotificationIconHint(message: string, type?: string | null): any {
+  const loweredType = type?.toLowerCase() ?? ''
+  const text = message.toLowerCase()
+  if (loweredType.includes('friend') || loweredType.includes('follow') || text.includes('friend') || text.includes('request')) {
+    return (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15.499 6C12.7078 6 10.4386 8.13012 10.4386 10.7503C10.4386 13.3204 12.58 15.4005 15.3712 15.4905C15.4564 15.4805 15.5416 15.4805 15.6055 15.4905C15.6268 15.4905 15.6375 15.4905 15.6588 15.4905C15.6695 15.4905 15.6695 15.4905 15.6801 15.4905C18.4074 15.4005 20.5487 13.3204 20.5594 10.7503C20.5594 8.13012 18.2902 6 15.499 6Z" fill="url(#paint0_linear_2256_5059)"/>
+        <path d="M20.9119 18.1496C17.9396 16.2895 13.0923 16.2895 10.0987 18.1496C8.74574 18.9996 8 20.1497 8 21.3797C8 22.6098 8.74574 23.7499 10.0881 24.5899C11.5795 25.53 13.5398 26 15.5 26C17.4602 26 19.4205 25.53 20.9119 24.5899C22.2543 23.7399 23 22.5998 23 21.3597C22.9893 20.1297 22.2543 18.9896 20.9119 18.1496ZM17.6307 22.1298H16.299V23.3799C16.299 23.7899 15.9368 24.1299 15.5 24.1299C15.0632 24.1299 14.701 23.7899 14.701 23.3799V22.1298H13.3693C12.9325 22.1298 12.5703 21.7898 12.5703 21.3797C12.5703 20.9697 12.9325 20.6297 13.3693 20.6297H14.701V19.3796C14.701 18.9696 15.0632 18.6296 15.5 18.6296C15.9368 18.6296 16.299 18.9696 16.299 19.3796V20.6297H17.6307C18.0675 20.6297 18.4297 20.9697 18.4297 21.3797C18.4297 21.7898 18.0675 22.1298 17.6307 22.1298Z" fill="url(#paint1_linear_2256_5059)"/>
+        <defs>
+        <linearGradient id="paint0_linear_2256_5059" x1="15.5" y1="6" x2="15.5" y2="26" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#BCBCBC"/>
+        <stop offset="1" stop-color="#CCCCCC"/>
+        </linearGradient>
+        <linearGradient id="paint1_linear_2256_5059" x1="15.5" y1="6" x2="15.5" y2="26" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#BCBCBC"/>
+        <stop offset="1" stop-color="#CCCCCC"/>
+        </linearGradient>
+        </defs>
+      </svg>
+
+    )
+  }
+  if (loweredType.includes('drink') || text.includes('ml') || text.includes('drink') || text.includes('water')) {
+    return (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 18.2222C24 22.9269 20.8391 26 16 26C11.1609 26 8 22.9269 8 18.2222C8 14.4925 13.0279 8.99496 15.1117 6.87659C15.6056 6.37456 16.3944 6.37456 16.8883 6.87659C18.9721 8.99496 24 14.4925 24 18.2222Z" fill="url(#paint0_linear_2256_5069)"/>
+        <defs>
+        <linearGradient id="paint0_linear_2256_5069" x1="16" y1="6" x2="16" y2="26" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#E1EFFF"/>
+        <stop offset="1" stop-color="#B4D7FF"/>
+        </linearGradient>
+        </defs>
+      </svg>
+    )
+  }
+  if (loweredType.includes('goal') || text.includes('goal') || text.includes('target')) {
+    return (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10.8115 8.13965C10.7716 6.0898 12.1015 5.39012 13.7715 6.58008L16.8516 8.7998C17.2716 9.1097 18.0216 9.21955 18.5215 9.05957L21.4717 8.08984C23.3614 7.47012 24.421 8.52005 23.8311 10.4199L22.8115 13.6602C22.6416 14.2002 22.8117 14.9997 23.1816 15.4297L25.1611 17.7295C26.7211 19.5495 26.0413 20.9295 23.6514 20.8096L20.3115 20.6396C19.7115 20.6096 18.9509 20.9996 18.6309 21.5195L16.8711 24.3701C15.6111 26.4098 14.0914 26.1793 13.4814 23.8594L12.7109 20.9199C12.5709 20.3699 12.0009 19.7794 11.4609 19.6094L8.23145 18.5996C6.33152 17.9996 6.07133 16.5301 7.66113 15.3301L10.1416 13.4502C10.5616 13.1402 10.8909 12.4497 10.8809 11.9297L10.8115 8.13965ZM9.69141 21.4404C9.98141 21.1504 10.461 21.1504 10.751 21.4404C11.0409 21.7304 11.0409 22.21 10.751 22.5L7.72168 25.5303C7.57173 25.6802 7.38134 25.75 7.19141 25.75C7.00146 25.75 6.81111 25.6802 6.66113 25.5303C6.37113 25.2403 6.37113 24.7597 6.66113 24.4697L9.69141 21.4404ZM19.627 12.8975C19.2945 12.6067 18.789 12.6412 18.498 12.9736L15.5996 16.2852L14.1025 14.5732C13.8117 14.2408 13.3061 14.2073 12.9736 14.498C12.6412 14.7889 12.6067 15.2944 12.8975 15.627L14.998 18.0264C15.1499 18.1999 15.3691 18.2997 15.5996 18.2998C15.8303 18.2998 16.0502 18.2 16.2021 18.0264L19.7021 14.0264C19.9928 13.6939 19.9593 13.1883 19.627 12.8975Z" fill="url(#paint0_linear_2256_5099)"/>
+        <defs>
+        <linearGradient id="paint0_linear_2256_5099" x1="6.44336" y1="6" x2="26.4435" y2="25.9999" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#6BC691"/>
+        <stop offset="1" stop-color="#EEEEEE"/>
+        </linearGradient>
+        </defs>
+      </svg>
+
+    )
+  }
+  if (loweredType.includes('signal') || text.includes('signal')) {
+    return (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" fill="white"/>
+        <path d="M25.4842 20.597C25.381 20.597 25.2842 20.5647 25.1939 20.5002C24.981 20.3389 24.9358 20.0357 25.0971 19.8228C25.8778 18.784 26.2907 17.5453 26.2907 16.2421C26.2907 14.9389 25.8778 13.7002 25.0971 12.6615C24.9358 12.4486 24.981 12.1453 25.1939 11.984C25.4068 11.8228 25.71 11.8679 25.8713 12.0808C26.781 13.2873 27.2584 14.726 27.2584 16.2421C27.2584 17.7582 26.781 19.197 25.8713 20.4034C25.7745 20.5324 25.6326 20.597 25.4842 20.597Z" fill="#8BE4B0"/>
+        <path d="M23.4197 19.0482C23.3165 19.0482 23.2197 19.0159 23.1294 18.9514C22.9165 18.7901 22.8713 18.4869 23.0326 18.274C23.4778 17.6869 23.71 16.9837 23.71 16.2417C23.71 15.4998 23.4778 14.7966 23.0326 14.2095C22.8713 13.9966 22.9165 13.6933 23.1294 13.5321C23.3423 13.3708 23.6455 13.4159 23.8068 13.6288C24.3745 14.3901 24.6778 15.2933 24.6778 16.2417C24.6778 17.1901 24.3745 18.0998 23.8068 18.8546C23.71 18.9837 23.5681 19.0482 23.4197 19.0482Z" fill="#56D38B"/>
+        <path d="M6.77419 20.597C6.62581 20.597 6.48387 20.5324 6.3871 20.4034C5.47742 19.197 5 17.7582 5 16.2421C5 14.726 5.47742 13.2873 6.3871 12.0808C6.54839 11.8679 6.85161 11.8228 7.06452 11.984C7.27742 12.1453 7.32258 12.4486 7.16129 12.6615C6.38065 13.7002 5.96774 14.9389 5.96774 16.2421C5.96774 17.5453 6.38065 18.784 7.16129 19.8228C7.32258 20.0357 7.27742 20.3389 7.06452 20.5002C6.98064 20.5647 6.87742 20.597 6.77419 20.597Z" fill="#8BE4B0"/>
+        <path d="M8.83871 19.0482C8.69032 19.0482 8.54839 18.9837 8.45161 18.8546C7.88387 18.0998 7.58065 17.1901 7.58065 16.2417C7.58065 15.2933 7.88387 14.3837 8.45161 13.6288C8.6129 13.4159 8.91613 13.3708 9.12903 13.5321C9.34194 13.6933 9.3871 13.9966 9.22581 14.2095C8.78064 14.7966 8.54839 15.4998 8.54839 16.2417C8.54839 16.9837 8.78064 17.6869 9.22581 18.274C9.3871 18.4869 9.34194 18.7901 9.12903 18.9514C9.04516 19.0159 8.94194 19.0482 8.83871 19.0482Z" fill="#56D38B"/>
+        <path d="M10.9679 24.1452H21.2905V26.0806H10.9679V24.1452Z" fill="url(#paint0_linear_2256_5089)"/>
+        <path d="M10.9679 25.9194H21.2905V27.5176C21.2905 27.8395 21.052 28.1127 20.7328 28.1546C17.2249 28.6151 15.0335 28.6151 11.5256 28.1546C11.2064 28.1127 10.9679 27.8395 10.9679 27.5176V25.9194Z" fill="#EEEEEE"/>
+        <path d="M10.9679 4.59998C10.9679 4.30853 11.1624 4.05204 11.4463 3.98623C14.2432 3.33792 18.0152 3.33792 20.8121 3.98623C21.096 4.05204 21.2905 4.30853 21.2905 4.59998V6.56452C21.2905 6.92083 21.0016 7.20968 20.6453 7.20968H11.6131C11.2568 7.20968 10.9679 6.92083 10.9679 6.56452V4.59998Z" fill="#EEEEEE"/>
+        <path d="M10.9679 8.5C10.9679 8.14369 11.2568 7.85484 11.6131 7.85484H20.6453C21.0016 7.85484 21.2905 8.14369 21.2905 8.5V24.629H10.9679V8.5Z" fill="#EEEEEE"/>
+        <defs>
+        <linearGradient id="paint0_linear_2256_5089" x1="5.90712" y1="28.5" x2="30.4096" y2="8.46268" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#E7E8E8"/>
+        <stop offset="1" stop-color="#CCCCCC"/>
+        </linearGradient>
+        </defs>
+      </svg>
+    )
+  }
+  if (loweredType.includes('vibration') || text.includes('vibration') || text.includes('motion')) {
+    return (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 23.8268H21.4134V25.7794H11V23.8268Z" fill="url(#paint0_linear_2256_5079)"/>
+        <path d="M11 25.6166H21.4134V27.2289C21.4134 27.5537 21.1728 27.8293 20.8508 27.8716C17.312 28.3361 15.1014 28.3361 11.5626 27.8716C11.2406 27.8293 11 27.5537 11 27.2289V25.6166Z" fill="#EEEEEE"/>
+        <path d="M11 4.10966C11 3.81565 11.1962 3.5569 11.4826 3.49051C14.3041 2.8365 18.1093 2.8365 20.9308 3.49051C21.2172 3.5569 21.4134 3.81565 21.4134 4.10966V6.09148C21.4134 6.45093 21.122 6.74232 20.7626 6.74232H11.6508C11.2914 6.74232 11 6.45093 11 6.09148V4.10966Z" fill="#EEEEEE"/>
+        <path d="M11 8.044C11 7.68455 11.2914 7.39316 11.6508 7.39316H20.7626C21.122 7.39316 21.4134 7.68455 21.4134 8.044V24.315H11V8.044Z" fill="#EEEEEE"/>
+        <defs>
+        <linearGradient id="paint0_linear_2256_5079" x1="11.4244" y1="28.22" x2="28.1483" y2="21.8775" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#6DD893"/>
+        <stop offset="1" stop-color="#76BAEE"/>
+        </linearGradient>
+        </defs>
+      </svg>
+    )
+  }
+  return 'general'
+}
+
 function formatTimestamp(value: string | undefined): string | undefined {
   if (!value) return undefined
   const parsed = new Date(value)
@@ -1158,5 +1573,50 @@ function SummaryStat({ label, value }: SummaryStatProps) {
       <p className='text-xs uppercase text-muted-foreground'>{label}</p>
       <p className='text-lg font-semibold'>{value}</p>
     </div>
+  )
+}
+
+type DetailAccordionSectionProps = {
+  id: DetailSectionKey
+  title: string
+  description?: string
+  isOpen: boolean
+  onToggle: (id: DetailSectionKey, open: boolean) => void
+  children: ReactNode
+}
+
+function DetailAccordionSection({
+  id,
+  title,
+  description,
+  isOpen,
+  onToggle,
+  children,
+}: DetailAccordionSectionProps) {
+  return (
+    <Collapsible open={isOpen} onOpenChange={(open) => onToggle(id, open)}>
+      <div className='rounded-xl border border-border/60 bg-card/60 shadow-sm'>
+        <CollapsibleTrigger
+          className='flex w-full items-center justify-between gap-3 px-4 py-3 text-left'
+          type='button'
+        >
+          <div className='space-y-1'>
+            <p className='text-sm font-semibold'>{title}</p>
+            {description ? (
+              <p className='text-xs text-muted-foreground'>{description}</p>
+            ) : null}
+          </div>
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+              isOpen ? 'rotate-180' : ''
+            )}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent className='border-t border-border/60'>
+          <div className='space-y-4 px-4 py-4'>{children}</div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   )
 }

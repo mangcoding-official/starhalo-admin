@@ -12,6 +12,7 @@ import { createPushNotification } from '../api/create-push-notification'
 import { updatePushNotification } from '../api/update-push-notification'
 import { deletePushNotification } from '../api/delete-push-notification'
 import type { Notification, NotificationStatus } from '../data/schema'
+import { PushNotificationViewDialog } from './notifications-view-dialog'
 
 function deriveStatus(scheduleDate: string | null): NotificationStatus {
   return scheduleDate ? 'scheduled' : 'draft'
@@ -168,6 +169,19 @@ export function PushNotificationsDialogs() {
               </>
             }
             confirmText='Delete'
+          />
+          <PushNotificationViewDialog
+            key={`push-notifications-view-${currentRow.id}`}
+            open={open === 'view'}
+            onOpenChange={(isOpen) => {
+              if (isOpen) {
+                setOpen('view')
+              } else {
+                setOpen(null)
+                setCurrentRow(null)
+              }
+            }}
+            notification={currentRow}
           />
         </>
       )}

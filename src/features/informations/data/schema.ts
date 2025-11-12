@@ -1,11 +1,6 @@
 import { z } from 'zod'
 
-export const informationStatusSchema = z.enum([
-  'draft',
-  'scheduled',
-  'published',
-  'archived',
-])
+export const informationStatusSchema = z.enum(['draft', 'published'])
 export type InformationStatus = z.infer<typeof informationStatusSchema>
 
 export const informationSchema = z.object({
@@ -42,18 +37,7 @@ function parseDate(value: string | null | undefined): Date | null {
 }
 
 function normalizeStatus(value: string | null | undefined): InformationStatus {
-  switch ((value ?? '').toLowerCase()) {
-    case 'draft':
-      return 'draft'
-    case 'scheduled':
-      return 'scheduled'
-    case 'published':
-      return 'published'
-    case 'archived':
-      return 'archived'
-    default:
-      return 'draft'
-  }
+  return (value ?? '').toLowerCase() === 'published' ? 'published' : 'draft'
 }
 
 export function createInformationFromApi(apiInformation: ApiInformation): Information {

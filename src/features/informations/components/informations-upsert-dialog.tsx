@@ -46,7 +46,7 @@ const formSchema = z.object({
   content: z
     .string()
     .refine((val) => !isEmptyHtml(val), 'Content is required'),
-  status: z.enum(['draft', 'scheduled', 'published', 'archived']),
+  status: z.enum(['draft', 'published']),
 })
 
 export type InformationFormValues = z.infer<typeof formSchema>
@@ -181,13 +181,7 @@ export function InformationsUpsertDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="draft">Draft</SelectItem>
-                      {/* <SelectItem value="scheduled" disabled>
-                        Scheduled (coming soon)
-                      </SelectItem> */}
                       <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="archived">
-                        Archived
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -32,9 +32,13 @@ export function ProfileDropdown() {
 
   const user = currentUser ?? storedUser
 
+  const profileUsername =
+    typeof user?.profile === 'object' && typeof user.profile?.username === 'string'
+      ? user.profile.username.trim()
+      : undefined
   const displayName =
+    (profileUsername && profileUsername.length > 0 ? profileUsername : undefined) ??
     user?.name ??
-    (typeof user?.profile === 'object' ? user?.profile?.username : undefined) ??
     'Authenticated User'
   const displayEmail = user?.email ?? 'Signed in'
   const avatarUrl =

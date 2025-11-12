@@ -16,6 +16,17 @@ export type User = z.infer<typeof userSchema>
 
 export const userListSchema = z.array(userSchema)
 
+const apiUserProfileSchema = z
+  .object({
+    username: z.string().nullable().optional(),
+    avatar: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    address: z.string().nullable().optional(),
+  })
+  .passthrough()
+  .nullable()
+  .optional()
+
 export const apiUserSchema = z.object({
   id: z.union([z.number(), z.string()]),
   name: z.string().nullable().optional(),
@@ -24,7 +35,7 @@ export const apiUserSchema = z.object({
   email_verified_at: z.string().nullable().optional(),
   created_at: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),
-  profile: z.unknown().optional(),
+  profile: apiUserProfileSchema,
 })
 
 export type ApiUser = z.infer<typeof apiUserSchema>
@@ -45,7 +56,14 @@ function safeDate(value: string | null | undefined): Date {
 export function createUserFromApi(apiUser: ApiUser): User {
   const parsed = apiUserSchema.parse(apiUser)
 
+  const profileUsername =
+    typeof parsed.profile?.username === 'string' &&
+    parsed.profile.username.trim().length > 0
+      ? parsed.profile.username.trim()
+      : undefined
+
   const username =
+    profileUsername ||
     parsed.name?.trim() ||
     parsed.email?.trim() ||
     `user-${String(parsed.id).padStart(4, '0')}`

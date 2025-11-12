@@ -5,6 +5,7 @@ import { id as localeID } from 'date-fns/locale'
 import type { Information } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 import { DataTableColumnHeader } from '@/components/data-table'
+import { getRowSerial } from '@/lib/get-row-serial'
 
 export const informationsColumns: ColumnDef<Information>[] = [
   // {
@@ -32,9 +33,15 @@ export const informationsColumns: ColumnDef<Information>[] = [
   // },
   {
     accessorKey: 'id',
-    header: 'ID',
-    cell: ({ row }) => <span className="font-mono text-xs">{row.getValue('id')}</span>,
-    enableHiding: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="No" />
+    ),
+    cell: ({ row, table }) => (
+      <span className="font-mono text-xs">{getRowSerial(table, row.index)}</span>
+    ),
+    enableSorting: false,
+    enableHiding: false,
+    size: 48,
   },
   {
     accessorKey: 'title',
@@ -53,9 +60,7 @@ export const informationsColumns: ColumnDef<Information>[] = [
       const status = String(row.getValue('status'))
       const map: Record<string, string> = {
         draft: 'secondary',
-        scheduled: 'outline',
         published: 'default',
-        archived: 'destructive',
       }
   type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
   const variant = (map[status] ?? 'secondary') as BadgeVariant

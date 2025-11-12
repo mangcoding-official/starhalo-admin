@@ -26,8 +26,6 @@ export const labels = [
 ]
 
 export const infoStatuses = [
-    { label: 'Draft', value: 'draft' },
-    { label: 'Scheduled', value: 'scheduled' },
-    { label: 'Published', value: 'published' },
-    { label: 'Archived', value: 'archived' },
+  { label: 'Draft', value: 'draft' },
+  { label: 'Published', value: 'published' },
 ]

@@ -1,11 +1,12 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { type Row } from '@tanstack/react-table'
-import { Trash2 } from 'lucide-react'
+import { Eye, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -36,6 +37,18 @@ export function DataTableRowActions<TData>({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' className='w-[160px]'>
+                <DropdownMenuItem
+                    onClick={() => {
+                        setCurrentRow(task)
+                        setOpen('view')
+                    }}
+                >
+                    View Details
+                    <DropdownMenuShortcut>
+                        <Eye size={16} />
+                    </DropdownMenuShortcut>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {/* <DropdownMenuItem
                     onClick={() => {
                         setCurrentRow(task)

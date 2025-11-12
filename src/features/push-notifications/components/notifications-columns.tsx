@@ -4,6 +4,7 @@ import { id as localeID } from 'date-fns/locale'
 import type { Notification } from '../data/schema'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { DataTableRowActions } from './data-table-row-actions'
+import { getRowSerial } from '@/lib/get-row-serial'
 
 function getTimestamp(value: unknown): number | null {
   if (typeof value !== 'string') return null
@@ -45,10 +46,9 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
     ),
     enableSorting: false,
     enableHiding: false,
-    cell: ({ row, table }) => {
-      const { pageIndex, pageSize } = table.getState().pagination
-      return <span className="font-mono text-xs">{pageIndex * pageSize + row.index + 1}</span>
-    },
+    cell: ({ row, table }) => (
+      <span className="font-mono text-xs">{getRowSerial(table, row.index)}</span>
+    ),
     size: 48,
   },
 
@@ -81,6 +81,28 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
     cell: ({ row }) => {
       const value = row.getValue('scheduleDate') as string | null | undefined
 
+      if (!value) {
+        return <span className="text-muted-foreground">—</span>
+      }
+
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) {
+        return <span className="text-muted-foreground">{value}</span>
+      }
+
+      return (
+        <span>{format(date, 'dd MMM yyyy HH:mm', { locale: localeID })}</span>
+      )
+    },
+    enableSorting: false,
+  },
+  {
+    accessorKey: 'sentAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Send At" />
+    ),
+    cell: ({ row }) => {
+      const value = row.original.sentAt
       if (!value) {
         return <span className="text-muted-foreground">—</span>
       }

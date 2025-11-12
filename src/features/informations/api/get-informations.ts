@@ -1,10 +1,6 @@
 import { z } from 'zod'
 import { apiClient } from '@/lib/api-client'
-import {
-  createInformationFromApi,
-  informationStatusSchema,
-  type Information,
-} from '../data/schema'
+import { createInformationFromApi, type Information } from '../data/schema'
 
 const apiInformationSchema = z.object({
   id: z.union([z.string(), z.number()]),
@@ -12,7 +8,7 @@ const apiInformationSchema = z.object({
   content: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   body: z.string().nullable().optional(),
-  status: informationStatusSchema.nullish(),
+  status: z.string().nullable().optional(),
   publish_date: z.string().nullable().optional(),
   published_at: z.string().nullable().optional(),
   scheduled_at: z.string().nullable().optional(),

@@ -4,7 +4,6 @@ import {
   createInformationFromApi,
   type Information,
   type InformationStatus,
-  informationStatusSchema,
 } from '../data/schema'
 
 const upsertResponseSchema = z.object({
@@ -16,7 +15,7 @@ const upsertResponseSchema = z.object({
       content: z.string().nullable().optional(),
       description: z.string().nullable().optional(),
       body: z.string().nullable().optional(),
-      status: informationStatusSchema.nullish(),
+      status: z.string().nullable().optional(),
       publish_date: z.string().nullable().optional(),
       published_at: z.string().nullable().optional(),
       scheduled_at: z.string().nullable().optional(),

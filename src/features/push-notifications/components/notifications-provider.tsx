@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import type { Notification } from '../data/schema'
 
-type PushNotificationDialogType = 'create' | 'update' | 'delete' | 'import'
+type PushNotificationDialogType = 'create' | 'update' | 'delete' | 'import' | 'view'
 
 type PushNotificationsContextType = {
   open: PushNotificationDialogType | null

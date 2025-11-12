@@ -1,5 +1,6 @@
 import { type ColumnDef, type Row } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
+import { getRowSerial } from '@/lib/get-row-serial'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
 import { type User } from '../data/schema'
@@ -34,8 +35,8 @@ export const usersColumns: ColumnDef<User>[] = [
     meta: {
       className: cn('sticky md:table-cell start-0 z-10 rounded-tl-[inherit]'),
     },
-    cell: ({ row }) => {
-      const serial = row.index + 1; 
+    cell: ({ row, table }) => {
+      const serial = getRowSerial(table, row.index)
       return (
         <span className="whitespace-nowrap text-sm text-muted-foreground">
           {serial}

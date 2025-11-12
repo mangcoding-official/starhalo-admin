@@ -1,16 +1,6 @@
 import { z } from 'zod'
 import { apiClient } from '@/lib/api-client'
-import { type User, createUserFromApi } from '../data/schema'
-
-const apiUserSchema = z.object({
-  id: z.union([z.number(), z.string()]),
-  name: z.string().nullable().optional(),
-  email: z.string().nullable().optional(),
-  status: z.string().nullable().optional(),
-  created_at: z.string().nullable().optional(),
-  updated_at: z.string().nullable().optional(),
-  profile: z.unknown().optional(),
-})
+import { type User, createUserFromApi, apiUserSchema } from '../data/schema'
 
 const apiResponseSchema = z.object({
   message: z.string().optional(),
@@ -56,7 +46,12 @@ export async function getUsers({
       page,
       per_page: perPage,
       sort,
-      ...(search?.trim() ? { s: search.trim() } : {}),
+      ...(search?.trim()
+        ? {
+            s: search.trim(),
+            // username: search.trim(),
+          }
+        : {}),
     },
   })
 
