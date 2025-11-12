@@ -44,7 +44,7 @@ export const reportsColumns: ColumnDef<Report>[] = [
     header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
     cell: ({ row }) => {
       const status = row.original.status
-      const variant = status === 'resolved' ? 'default' : 'secondary'
+      const variant = status === 'resolve' ? 'default' : 'secondary'
       return <Badge variant={variant}>{status}</Badge>
     },
   },
