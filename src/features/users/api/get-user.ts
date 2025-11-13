@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { apiClient } from '@/lib/api-client'
 import { type UserStatus, createUserFromApi } from '../data/schema'
 
+const boolish = z.union([z.boolean(), z.number(), z.string()])
+
 const notificationSummarySchema = z
   .object({
     new_follower: z.array(z.unknown()).optional(),
@@ -22,6 +24,7 @@ const apiUserDetailSchema = z.object({
   updated_at: z.string().nullable().optional(),
   profile: z
     .object({
+      user_id: z.union([z.string(), z.number()]).nullable().optional(),
       username: z.string().nullable().optional(),
       phone: z.string().nullable().optional(),
       address: z.string().nullable().optional(),
@@ -34,6 +37,23 @@ const apiUserDetailSchema = z.object({
       weight: z.number().nullable().optional(),
       height: z.number().nullable().optional(),
       color: z.string().nullable().optional(),
+      age: z.number().nullable().optional(),
+      is_target_ml_editable: boolish.nullable().optional(),
+      is_pregnant: boolish.nullable().optional(),
+      is_lactating: boolish.nullable().optional(),
+      is_private: boolish.nullable().optional(),
+      pattern: z.string().nullable().optional(),
+      device_id: z.string().nullable().optional(),
+      is_led: boolish.nullable().optional(),
+      is_fibration: boolish.nullable().optional(),
+      is_alarm: boolish.nullable().optional(),
+      is_agree_service: boolish.nullable().optional(),
+      is_agree_private_data: boolish.nullable().optional(),
+      is_agree_location: boolish.nullable().optional(),
+      is_agree_marketing: boolish.nullable().optional(),
+      is_notification_muted: boolish.nullable().optional(),
+      is_information_muted: boolish.nullable().optional(),
+      streak: z.number().nullable().optional(),
     })
     .nullable()
     .optional(),
@@ -77,6 +97,7 @@ export type UserDetail = {
   createdAt: Date | null
   updatedAt: Date | null
   profile: {
+    userId?: string | number | null
     username?: string | null
     phone?: string | null
     address?: string | null
@@ -89,6 +110,23 @@ export type UserDetail = {
     weight?: number | null
     height?: number | null
     color?: string | null
+    age?: number | null
+    isTargetMlEditable?: boolean | null
+    isPregnant?: boolean | null
+    isLactating?: boolean | null
+    isPrivate?: boolean | null
+    pattern?: string | null
+    deviceId?: string | null
+    isLed?: boolean | null
+    isFibration?: boolean | null
+    isAlarm?: boolean | null
+    isAgreeService?: boolean | null
+    isAgreePrivateData?: boolean | null
+    isAgreeLocation?: boolean | null
+    isAgreeMarketing?: boolean | null
+    isNotificationMuted?: boolean | null
+    isInformationMuted?: boolean | null
+    streak?: number | null
   } | null
   stats: {
     followers: number
@@ -110,6 +148,21 @@ function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function parseBooleanFlag(value: unknown): boolean | null {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) return null
+    return value !== 0
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (!normalized) return null
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
+    if (['0', 'false', 'no', 'off'].includes(normalized)) return false
+  }
+  return null
 }
 
 export type GetUserDetailParams = {
@@ -153,6 +206,7 @@ export async function getUserDetail(
     updatedAt: parseDate(apiUser.updated_at ?? apiUser.created_at),
     profile: apiUser.profile
       ? {
+          userId: apiUser.profile.user_id ?? null,
           username: apiUser.profile.username ?? null,
           phone: apiUser.profile.phone ?? null,
           address: apiUser.profile.address ?? null,
@@ -165,6 +219,23 @@ export async function getUserDetail(
           weight: apiUser.profile.weight ?? null,
           height: apiUser.profile.height ?? null,
           color: apiUser.profile.color ?? null,
+          age: apiUser.profile.age ?? null,
+          isTargetMlEditable: parseBooleanFlag(apiUser.profile.is_target_ml_editable),
+          isPregnant: parseBooleanFlag(apiUser.profile.is_pregnant),
+          isLactating: parseBooleanFlag(apiUser.profile.is_lactating),
+          isPrivate: parseBooleanFlag(apiUser.profile.is_private),
+          pattern: apiUser.profile.pattern ?? null,
+          deviceId: apiUser.profile.device_id ?? null,
+          isLed: parseBooleanFlag(apiUser.profile.is_led),
+          isFibration: parseBooleanFlag(apiUser.profile.is_fibration),
+          isAlarm: parseBooleanFlag(apiUser.profile.is_alarm),
+          isAgreeService: parseBooleanFlag(apiUser.profile.is_agree_service),
+          isAgreePrivateData: parseBooleanFlag(apiUser.profile.is_agree_private_data),
+          isAgreeLocation: parseBooleanFlag(apiUser.profile.is_agree_location),
+          isAgreeMarketing: parseBooleanFlag(apiUser.profile.is_agree_marketing),
+          isNotificationMuted: parseBooleanFlag(apiUser.profile.is_notification_muted),
+          isInformationMuted: parseBooleanFlag(apiUser.profile.is_information_muted),
+          streak: apiUser.profile.streak ?? null,
         }
       : null,
     stats: {

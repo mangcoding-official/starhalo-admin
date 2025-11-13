@@ -106,7 +106,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
   const isPending = isLoading || isFetching
 
   const profile = detail?.profile
-  const stats = detail?.stats
+  // const stats = detail?.stats
   const rawDetail = detail?.raw
   const rawProfileUsername =
     typeof profile?.username === 'string' ? profile.username : null
@@ -189,6 +189,64 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
     () => (isRecord(rawDetail?.my_hydration) ? (rawDetail?.my_hydration as UnknownRecord) : null),
     [rawDetail]
   )
+
+  const profileDisplayFields = useMemo(() => {
+    if (!profile) return []
+    const preferredTarget =
+      typeof profile.targetMl === 'number' ? profile.targetMl : profile.defaultTargetMl
+
+    return [
+      { label: 'User ID', value: profile.userId ?? '-' },
+      // { label: 'Username', value: profile.username ?? '-' },
+      { label: 'Address', value: profile.address ?? '-' },
+      { label: 'Date of Birth', value: formatProfileDate(profile.dateOfBirth) },
+      {
+        label: 'Username',
+        value: (
+          <ProfileAvatarPreview
+            src={profile.avatar}
+            fallback={profile.username ?? canonicalDisplayName ?? 'User'}
+          />
+        ),
+      },
+      { label: 'Age', value: profile.age ?? '-' },
+      { label: 'Gender', value: profile.gender ?? '-' },
+      { label: 'Height', value: formatMeasurement(profile.height, 'cm') },
+      { label: 'Weight', value: formatMeasurement(profile.weight, 'kg') },
+      { label: 'Activity', value: profile.activity ?? '-' },
+      { label: 'Target (ml)', value: formatMeasurement(preferredTarget, 'ml') },
+      { label: 'Default Target (ml)', value: formatMeasurement(profile.defaultTargetMl, 'ml') },
+      { label: 'Target Editable', value: formatProfileBoolean(profile.isTargetMlEditable) },
+      { label: 'Pregnant', value: formatProfileBoolean(profile.isPregnant) },
+      { label: 'Lactating', value: formatProfileBoolean(profile.isLactating) },
+      { label: 'Private Account', value: formatProfileBoolean(profile.isPrivate) },
+      { label: 'Pattern', value: profile.pattern ?? '-' },
+      {
+        label: 'Color',
+        value: profile.color ? <ProfileColorSwatch color={profile.color} /> : '-',
+      },
+      { label: 'Device ID', value: profile.deviceId ?? '-' },
+      { label: 'LED Enabled', value: formatProfileBoolean(profile.isLed) },
+      { label: 'Vibration Enabled', value: formatProfileBoolean(profile.isFibration) },
+      { label: 'Alarm Enabled', value: formatProfileBoolean(profile.isAlarm) },
+      { label: 'Agree: Service', value: formatProfileBoolean(profile.isAgreeService) },
+      {
+        label: 'Agree: Private Data',
+        value: formatProfileBoolean(profile.isAgreePrivateData),
+      },
+      { label: 'Agree: Location', value: formatProfileBoolean(profile.isAgreeLocation) },
+      { label: 'Agree: Marketing', value: formatProfileBoolean(profile.isAgreeMarketing) },
+      {
+        label: 'Notifications Muted',
+        value: formatProfileBoolean(profile.isNotificationMuted),
+      },
+      {
+        label: 'Information Muted',
+        value: formatProfileBoolean(profile.isInformationMuted),
+      },
+      { label: 'Streak', value: profile.streak ?? '-' },
+    ]
+  }, [profile, canonicalDisplayName])
   const hydrationSummary = useMemo(
     () => getRecordField(hydrationReport ?? {}, ['summary']),
     [hydrationReport]
@@ -328,93 +386,58 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
             isOpen={openSection === 'overview'}
             onToggle={handleToggleSection}
           >
-            <div className='grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3'>
+            <div className='space-y-4'>
               {error instanceof Error ? (
-                <div className='rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive md:col-span-2 xl:col-span-3'>
+                <div className='rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive'>
                   {error.message}
                 </div>
               ) : null}
 
-          <DisplayField
-            label='Username'
-            value={isPending ? 'Loading...' : canonicalDisplayName ?? '-'}
-          />
-          <DisplayField
-            label='Email'
-            value={isPending ? 'Loading...' : detail?.email ?? currentRow?.email ?? '-'}
-          />
-          <DisplayField
-            label='Status'
-            value={isPending ? 'Loading...' : detail?.status ?? '-'}
-          />
-          <DisplayField
-            label='Email Verified'
-            value={isPending ? 'Loading...' : emailVerified}
-          />
-
-          {profile ? (
-            <>
-              <div className='mt-2 text-sm font-semibold text-muted-foreground'>
-                Profile
+              <div className={`grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 ${profile ? "hidden" : "grid"}`}>
+                <DisplayField
+                  label='Username'
+                  value={canonicalDisplayName ?? '-'}
+                  isLoading={isPending}
+                  skeletonWidth='w-32'
+                />
+                <DisplayField
+                  label='Email'
+                  value={detail?.email ?? currentRow?.email ?? '-'}
+                  isLoading={isPending}
+                  skeletonWidth='w-40'
+                />
+                <DisplayField
+                  label='Status'
+                  value={detail?.status ?? '-'}
+                  isLoading={isPending}
+                  skeletonWidth='w-16'
+                />
+                <DisplayField
+                  label='Email Verified'
+                  value={emailVerified}
+                  isLoading={isPending}
+                  skeletonWidth='w-24'
+                />
               </div>
-              <DisplayField label='Username' value={profile.username ?? '-'} />
-              <DisplayField label='Phone' value={profile.phone ?? '-'} />
-              <DisplayField label='Address' value={profile.address ?? '-'} />
-              <DisplayField label='Gender' value={profile.gender ?? '-'} />
-              <DisplayField label='Activity' value={profile.activity ?? '-'} />
-              <DisplayField
-                label='Target ML'
-                value={profile.targetMl ?? profile.defaultTargetMl ?? '-'}
-              />
-              <DisplayField
-                label='Weight'
-                value={
-                  profile.weight !== null && profile.weight !== undefined
-                    ? `${profile.weight} kg`
-                    : '-'
-                }
-              />
-              <DisplayField
-                label='Height'
-                value={
-                  profile.height !== null && profile.height !== undefined
-                    ? `${profile.height} cm`
-                    : '-'
-                }
-              />
-            </>
-          ) : null}
 
-          {stats ? (
-            <>
-              <div className='mt-2 text-sm font-semibold text-muted-foreground'>
-                Engagement
-              </div>
-              <DisplayField label='Followers' value={stats.followers.toString()} />
-              <DisplayField label='Following' value={stats.following.toString()} />
-              <DisplayField label='Muted Users' value={stats.mutedUsers.toString()} />
-              <DisplayField label='Muting Users' value={stats.mutingUsers.toString()} />
-              <DisplayField label='Blocked Users' value={stats.blockedUsers.toString()} />
-              <DisplayField
-                label='Blocked By Users'
-                value={stats.blockedByUsers.toString()}
-              />
-              <DisplayField label='Sent Reports' value={stats.sentReports.toString()} />
-              <DisplayField
-                label='Received Reports'
-                value={stats.receivedReports.toString()}
-              />
-              <DisplayField label='Alarm Events' value={stats.alarmEvents.toString()} />
-              <DisplayField
-                label='Daily Achievements'
-                value={stats.dailyAchievements.toString()}
-              />
-              <DisplayField
-                label='Intake Drink Logs'
-                value={stats.intakeDrinkLogs.toString()}
-              />
-            </>
-          ) : null}
+              {profile ? (
+                <>
+                  {/* <div className='mt-2 text-sm font-semibold text-muted-foreground'>
+                    Profile
+                  </div> */}
+                  <div className='grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3'>
+                    {profileDisplayFields.map(({ label, value }) => (
+                      <DisplayField
+                        key={label}
+                        label={label}
+                        value={value}
+                        isLoading={isPending}
+                        skeletonWidth='w-28'
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : null}
             </div>
           </DetailAccordionSection>
 
@@ -706,16 +729,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
             </CardContent>
           </Card>
         ) : null}
-          </DetailAccordionSection>
-
-        <DetailAccordionSection
-          id='drinkHistory'
-          title='Drink History'
-          description='Aggregated progress for the selected range.'
-          isOpen={openSection === 'drinkHistory'}
-          onToggle={handleToggleSection}
-        >
-          {drinkHistory.length ? (
+                  {drinkHistory.length ? (
             <Card className='border border-border/60 bg-card/60'>
               <CardHeader className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
                 <div>
@@ -778,7 +792,17 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
               </CardHeader>
             </Card>
           )}
-        </DetailAccordionSection>
+          </DetailAccordionSection>
+
+        {/* <DetailAccordionSection
+          id='drinkHistory'
+          title='Drink History'
+          description='Aggregated progress for the selected range.'
+          isOpen={openSection === 'drinkHistory'}
+          onToggle={handleToggleSection}
+        >
+
+        </DetailAccordionSection> */}
 
         <DetailAccordionSection
             id='engagement'
@@ -1364,6 +1388,73 @@ function formatKeyLabel(key: string): string {
   return key
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatMeasurement(value?: number | null, unit?: string) {
+  if (typeof value === 'number' && !Number.isNaN(value)) {
+    return unit ? `${value} ${unit}` : `${value}`
+  }
+  return '-'
+}
+
+function formatProfileBoolean(value?: boolean | null) {
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No'
+  }
+  return '-'
+}
+
+function formatProfileDate(value?: string | null) {
+  if (!value) return '-'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return value
+  }
+  return format(parsed, 'dd MMM yyyy')
+}
+
+function ProfileColorSwatch({ color }: { color: string }) {
+  const normalized = color?.trim() || '#000000'
+  return (
+    <span className='inline-flex items-center gap-2'>
+      <span
+        className='h-4 w-4 rounded-full border border-border/60'
+        style={{ backgroundColor: normalized }}
+        aria-label='Profile color preview'
+      />
+      {normalized}
+    </span>
+  )
+}
+
+const DEFAULT_AVATAR_SRC = '/avatars/shadcn.jpg'
+
+function ProfileAvatarPreview({ src, fallback }: { src?: string | null; fallback: string }) {
+  const imageSrc = src && src.trim().length > 0 ? src : DEFAULT_AVATAR_SRC
+  const initials = getInitials(fallback)
+  return (
+    <div className='flex items-center gap-3'>
+      <Avatar className='h-10 w-10'>
+        <AvatarImage src={imageSrc} alt={fallback} />
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
+      <div className='flex flex-col text-sm'>
+        <span>{fallback}</span>
+        {src && src.trim().length > 0 ? (
+          <a
+            href={src}
+            target='_blank'
+            rel='noreferrer'
+            className='text-xs text-primary underline decoration-dotted'
+          >
+            Open avatar
+          </a>
+        ) : (
+          <span className='text-xs text-muted-foreground'>Default avatar</span>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function renderAlarmValue(key: string, value: unknown): ReactNode {
