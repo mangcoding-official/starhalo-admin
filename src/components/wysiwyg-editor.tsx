@@ -208,7 +208,7 @@ export function WysiwygEditor({
 
   return (
     <div className={cn('space-y-2', className)}>
-      <div className='rounded-lg border border-input'>
+      <div id='wysiwyg' className='rounded-lg border border-input'>
         <div ref={wrapperRef} />
       </div>
       {sanitizedValue && plainText.length === 0 ? (

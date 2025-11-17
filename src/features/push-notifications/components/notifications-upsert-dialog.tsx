@@ -28,16 +28,53 @@ function toDatetimeLocal(value?: string | null) {
 
 const DATETIME_LOCAL_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
 
+function parseDatetimeLocal(value: string): Date | null {
+  if (!DATETIME_LOCAL_REGEX.test(value)) return null
+  const [datePart, timePart] = value.split('T')
+  if (!datePart || !timePart) return null
+  const [yearStr, monthStr, dayStr] = datePart.split('-')
+  const [hourStr, minuteStr] = timePart.split(':')
+  if (!yearStr || !monthStr || !dayStr || !hourStr || !minuteStr) return null
+  const year = Number(yearStr)
+  const monthIndex = Number(monthStr) - 1
+  const day = Number(dayStr)
+  const hour = Number(hourStr)
+  const minute = Number(minuteStr)
+  if ([year, monthIndex, day, hour, minute].some((n) => Number.isNaN(n))) {
+    return null
+  }
+  return new Date(year, monthIndex, day, hour, minute)
+}
+
 const formSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
   message: z.string().min(1, 'Message is required').max(1000, 'Message is too long'),
   scheduleAt: z.string().optional(),
 }).superRefine((v, ctx) => {
-  if (v.scheduleAt && v.scheduleAt.trim().length > 0 && !DATETIME_LOCAL_REGEX.test(v.scheduleAt)) {
+  const scheduleAt = v.scheduleAt?.trim()
+  if (!scheduleAt) return
+  if (!DATETIME_LOCAL_REGEX.test(scheduleAt)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['scheduleAt'],
       message: 'Send date must use the YYYY-MM-DDTHH:mm format.',
+    })
+    return
+  }
+  const parsed = parseDatetimeLocal(scheduleAt)
+  if (!parsed) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['scheduleAt'],
+      message: 'Send date is invalid.',
+    })
+    return
+  }
+  if (parsed.getTime() < Date.now()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['scheduleAt'],
+      message: 'Send date cannot be in the past.',
     })
   }
 })
@@ -69,6 +106,11 @@ export function PushNotificationsUpsertDialog({
     resolver: zodResolver(formSchema),
     defaultValues: initialValues,
   })
+
+  const minScheduleAt = useMemo(
+    () => toDatetimeLocal(new Date().toISOString()),
+    [open],
+  )
 
   useEffect(() => {
     if (open) {
@@ -167,6 +209,7 @@ export function PushNotificationsUpsertDialog({
                       className='w-fit'
                       type="datetime-local"
                       placeholder="Optional"
+                      min={minScheduleAt || undefined}
                       {...field}
                     />
                   </FormControl>

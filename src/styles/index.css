@@ -85,3 +85,8 @@
     height: 0;
   }
 }
+
+#wysiwyg .ql-container.ql-snow .ql-editor {
+  max-height: 320px;
+  overflow-y: auto;
+}
