@@ -6,20 +6,25 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { useTranslation } from '@/lib/i18n'
 import { AuthLayout } from '../auth-layout'
 import { UserAuthForm } from './components/user-auth-form'
 
 export function SignIn() {
   const { redirect } = useSearch({ from: '/(auth)/sign-in' })
+  const { t } = useTranslation()
 
   return (
     <AuthLayout>
       <Card className='gap-4'>
         <CardHeader>
-          <CardTitle className='text-lg tracking-tight'>Sign in</CardTitle>
+          <CardTitle className='text-lg tracking-tight'>
+            {t('auth.signIn.title', 'Sign in')}
+          </CardTitle>
           <CardDescription>
-            Enter your email and password below to <br />
-            log into your account
+            {t('auth.signIn.description.line1', 'Enter your email and password below to')}{' '}
+            <br />
+            {t('auth.signIn.description.line2', 'log into your account')}
           </CardDescription>
         </CardHeader>
         <CardContent>

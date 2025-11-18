@@ -24,8 +24,9 @@ import {
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import { useTranslation } from '@/lib/i18n'
 import type { Notification } from '../data/schema'
-import { pushNotificationsColumns as columns } from './notifications-columns'
+import { createPushNotificationsColumns } from './notifications-columns'
 
 const route = getRouteApi('/_authenticated/push-notifications/')
 
@@ -50,6 +51,8 @@ export function PushNotificationsTable({
 }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const { t } = useTranslation()
+  const columns = useMemo(() => createPushNotificationsColumns(t), [t])
 
   const {
     globalFilter,
@@ -132,7 +135,10 @@ export function PushNotificationsTable({
     <div className="space-y-4 max-sm:has-[div[role='toolbar']]:mb-16">
       <DataTableToolbar
         table={table}
-        searchPlaceholder="Filter by title or ID..."
+        searchPlaceholder={t(
+          'push.table.searchPlaceholder',
+          'Filter by title or ID...'
+        )}
       />
 
       <div className="overflow-hidden rounded-md border">
@@ -187,7 +193,12 @@ export function PushNotificationsTable({
                   colSpan={visibleColumnCount}
                   className="h-24 text-center"
                 >
-                  {showEmptyState ? 'No push notifications found.' : 'No results.'}
+                  {showEmptyState
+                    ? t(
+                        'push.table.empty.noNotifications',
+                        'No push notifications found.'
+                      )
+                    : t('push.table.empty.noResults', 'No results.')}
                 </TableCell>
               </TableRow>
             )}

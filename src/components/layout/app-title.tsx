@@ -8,9 +8,11 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Button } from '../ui/button'
+import { useTranslation } from '@/lib/i18n'
 
 export function AppTitle() {
   const { setOpenMobile } = useSidebar()
+  const { t } = useTranslation()
 
   return (
     <SidebarMenu>
@@ -26,8 +28,12 @@ export function AppTitle() {
               onClick={() => setOpenMobile(false)}
               className='grid flex-1 text-start text-sm leading-tight'
             >
-              <span className='truncate font-bold'>Starthalo</span>
-              <span className='truncate text-xs'>Admin Dashboard</span>
+              <span className='truncate font-bold'>
+                {t('app.brand.name', 'Starthalo')}
+              </span>
+              <span className='truncate text-xs'>
+                {t('app.brand.tagline', 'Admin Dashboard')}
+              </span>
             </Link>
             <ToggleSidebar />
           </div>
@@ -43,6 +49,7 @@ function ToggleSidebar({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar()
+  const { t } = useTranslation()
 
   return (
     <Button
@@ -59,7 +66,9 @@ function ToggleSidebar({
     >
       <X className='md:hidden' />
       <Menu className='max-md:hidden' />
-      <span className='sr-only'>Toggle Sidebar</span>
+      <span className='sr-only'>
+        {t('app.sidebar.toggle', 'Toggle Sidebar')}
+      </span>
     </Button>
   )
 }

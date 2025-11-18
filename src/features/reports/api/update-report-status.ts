@@ -6,7 +6,7 @@ export type UpdateReportStatusPayload = {
 }
 
 export async function updateReportStatus(id: string, payload: UpdateReportStatusPayload) {
-  const response = await apiClient.put(`/api/admin/reports/${id}`, payload)
+  const response = await apiClient.put(`/api/admin/followers/report/${id}`, payload)
   if (response.data && typeof response.data.message === 'string') {
     return response.data.message as string
   }

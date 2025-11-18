@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { z } from 'zod'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+import { useTranslation, type Translator } from '@/lib/i18n'
 
 const ADMIN_LOGIN_URL = '/api/auth/admin/login'
 
@@ -93,7 +94,7 @@ function getMessageFromResponse(payload: AdminLoginApiResponse | null) {
 }
 
 function applyFieldErrors(
-  form: UseFormReturn<z.infer<typeof formSchema>>,
+  form: UseFormReturn<UserAuthFormValues>,
   payload: AdminLoginApiResponse | null,
   fallbackMessage?: string
 ) {
@@ -118,15 +119,28 @@ function applyFieldErrors(
   })
 }
 
-const formSchema = z.object({
-  email: z.email({
-    error: (iss) => (iss.input === '' ? 'Please enter your email' : undefined),
-  }),
-  password: z
-    .string()
-    .min(1, 'Please enter your password')
-    .min(7, 'Password must be at least 7 characters long'),
-})
+const createFormSchema = (t: Translator) =>
+  z.object({
+    email: z.email({
+      error: (iss) =>
+        iss.input === ''
+          ? t('auth.signIn.fields.email.required', 'Please enter your email')
+          : undefined,
+    }),
+    password: z
+      .string()
+      .min(1, t('auth.signIn.fields.password.required', 'Please enter your password'))
+      .min(
+        7,
+        t(
+          'auth.signIn.fields.password.minLength',
+          'Password must be at least 7 characters long'
+        )
+      ),
+  })
+
+type UserAuthFormSchema = ReturnType<typeof createFormSchema>
+type UserAuthFormValues = z.infer<UserAuthFormSchema>
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLFormElement> {
   redirectTo?: string
@@ -137,11 +151,13 @@ export function UserAuthForm({
   redirectTo,
   ...props
 }: UserAuthFormProps) {
+  const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const { auth } = useAuthStore()
+  const formSchema = useMemo(() => createFormSchema(t), [t])
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<UserAuthFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
@@ -149,9 +165,13 @@ export function UserAuthForm({
     },
   })
 
-  async function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: UserAuthFormValues) {
     setIsLoading(true)
     form.clearErrors()
+    const defaultErrorMessage = t(
+      'auth.signIn.error.default',
+      'Unable to sign in. Please try again.'
+    )
 
     try {
       const { data: payload } = await apiClient.post<AdminLoginApiResponse>(
@@ -166,7 +186,7 @@ export function UserAuthForm({
 
       if (!loginData) {
         const message =
-          getMessageFromResponse(payload) ?? 'Unable to sign in. Please try again.'
+          getMessageFromResponse(payload) ?? defaultErrorMessage
         applyFieldErrors(form, payload, message)
         if (!form.formState.errors.root) {
           form.setError('root', { message })
@@ -191,13 +211,14 @@ export function UserAuthForm({
       auth.setUser(loginData.user)
 
       const successMessage =
-        getMessageFromResponse(payload) ?? 'Login successfully'
+        getMessageFromResponse(payload) ??
+        t('auth.signIn.success', 'Login successfully')
       toast.success(successMessage)
 
       const targetPath = redirectTo || '/users'
       navigate({ to: targetPath, replace: true })
     } catch (error) {
-      let message = 'Unable to sign in. Please try again.'
+      let message = defaultErrorMessage
 
       if (error instanceof AxiosError) {
         const payload = (error.response?.data ??
@@ -230,9 +251,17 @@ export function UserAuthForm({
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>
+                {t('auth.signIn.fields.email.label', 'Email')}
+              </FormLabel>
               <FormControl>
-                <Input placeholder='name@example.com' {...field} />
+                <Input
+                  placeholder={t(
+                    'auth.signIn.fields.email.placeholder',
+                    'name@example.com'
+                  )}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -243,9 +272,17 @@ export function UserAuthForm({
           name='password'
           render={({ field }) => (
             <FormItem className='relative'>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>
+                {t('auth.signIn.fields.password.label', 'Password')}
+              </FormLabel>
               <FormControl>
-                <PasswordInput placeholder='********' {...field} />
+                <PasswordInput
+                  placeholder={t(
+                    'auth.signIn.fields.password.placeholder',
+                    '********'
+                  )}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
               {/* <Link
@@ -259,7 +296,7 @@ export function UserAuthForm({
         />
         <Button className='mt-2' disabled={isLoading} type='submit'>
           {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
-          Sign in
+          {t('auth.signIn.button', 'Sign in')}
         </Button>
         {form.formState.errors.root?.message ? (
           <p className='text-destructive text-sm font-medium'>

@@ -23,7 +23,8 @@ import {
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Information } from '../data/schema'
-import { informationsColumns as columns } from './informations-columns'
+import { useTranslation } from '@/lib/i18n'
+import { createInformationColumns } from './informations-columns'
 import { infoStatuses } from '../data/data'
 
 const route = getRouteApi('/_authenticated/informations/')
@@ -49,8 +50,10 @@ export function InformationsTable({
     sorting,
     onSortingChange,
 }: DataTableProps) {
+    const { t } = useTranslation()
     const [rowSelection, setRowSelection] = useState({})
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+    const columnDefs = useMemo(() => createInformationColumns(t), [t])
 
     const {
         globalFilter,
@@ -74,7 +77,7 @@ export function InformationsTable({
 
     const table = useReactTable({
         data: typedData,
-        columns,
+        columns: columnDefs,
         state: {
             sorting,
             columnVisibility,
@@ -113,7 +116,7 @@ export function InformationsTable({
     }, [ensurePageInRange, pageCount, isFetching, isLoading])
 
     const visibleColumns = table.getVisibleLeafColumns()
-    const visibleColumnCount = visibleColumns.length || columns.length
+    const visibleColumnCount = visibleColumns.length || columnDefs.length
     const skeletonRowCount = Math.min(
         table.getState().pagination?.pageSize ?? 10,
         10
@@ -126,12 +129,18 @@ export function InformationsTable({
         <div className="space-y-4 max-sm:has-[div[role='toolbar']]:mb-16">
             <DataTableToolbar
                 table={table}
-                searchPlaceholder="Filter by title or ID..."
+                searchPlaceholder={t(
+                    'info.table.searchPlaceholder',
+                    'Filter by title or ID...'
+                )}
                 filters={[
                     {
                         columnId: 'status',
-                        title: 'Status',
-                        options: infoStatuses,
+                        title: t('info.table.filters.status', 'Status'),
+                        options: infoStatuses.map((status) => ({
+                            value: status.value,
+                            label: t(status.labelKey, status.label),
+                        })),
                     },
                 ]}
             />
@@ -188,7 +197,9 @@ export function InformationsTable({
                                     colSpan={visibleColumnCount}
                                     className="h-24 text-center"
                                 >
-                                    {isTableEmpty ? 'No informations found.' : 'No results.'}
+                                    {isTableEmpty
+                                        ? t('info.table.empty.noInfos', 'No informations found.')
+                                        : t('info.table.empty.noResults', 'No results.')}
                                 </TableCell>
                             </TableRow>
                         )}

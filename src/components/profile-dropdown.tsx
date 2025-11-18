@@ -14,6 +14,7 @@ import {
 import { SignOutDialog } from '@/components/sign-out-dialog'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user'
+import { useTranslation } from '@/lib/i18n'
 
 function getInitials(name?: string | null) {
   if (!name) return 'NA'
@@ -29,6 +30,7 @@ export function ProfileDropdown() {
   const [open, setOpen] = useDialogState()
   const storedUser = useAuthStore((state) => state.auth.user)
   const { data: currentUser, isLoading, isFetching } = useCurrentUser()
+  const { t } = useTranslation()
 
   const user = currentUser ?? storedUser
 
@@ -39,8 +41,9 @@ export function ProfileDropdown() {
   const displayName =
     (profileUsername && profileUsername.length > 0 ? profileUsername : undefined) ??
     user?.name ??
-    'Authenticated User'
-  const displayEmail = user?.email ?? 'Signed in'
+    t('profile.placeholder.name', 'Authenticated User')
+  const displayEmail =
+    user?.email ?? t('profile.placeholder.email', 'Signed in')
   const avatarUrl =
     (typeof user?.profile === 'object' ? user?.profile?.avatar ?? undefined : undefined) ??
     (user as { avatar?: string | null } | undefined)?.avatar ??
@@ -61,7 +64,7 @@ export function ProfileDropdown() {
               {normalizedAvatarUrl ? (
                 <AvatarImage
                   src={normalizedAvatarUrl}
-                  alt={displayName ?? 'Profile avatar'}
+                  alt={displayName ?? t('profile.avatar.alt', 'Profile avatar')}
                 />
               ) : null}
               <AvatarFallback>{initials}</AvatarFallback>
@@ -72,10 +75,12 @@ export function ProfileDropdown() {
           <DropdownMenuLabel className='font-normal'>
             <div className='flex flex-col gap-1.5'>
               <p className='text-sm leading-none font-medium'>
-                {loading ? 'Loading...' : displayName}
+                {loading ? t('profile.loading', 'Loading...') : displayName}
               </p>
               <p className='text-muted-foreground text-xs leading-none'>
-                {loading ? 'Fetching account details' : displayEmail}
+                {loading
+                  ? t('profile.fetching', 'Fetching account details')
+                  : displayEmail}
               </p>
             </div>
           </DropdownMenuLabel>
@@ -103,7 +108,7 @@ export function ProfileDropdown() {
           </DropdownMenuGroup> */}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setOpen(true)}>
-            Sign out
+            {t('profile.dropdown.signOut', 'Sign out')}
             <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>

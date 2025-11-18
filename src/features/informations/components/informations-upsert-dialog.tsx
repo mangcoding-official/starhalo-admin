@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { WysiwygEditor } from '@/components/wysiwyg-editor'
+import { useTranslation, type Translator } from '@/lib/i18n'
 import type { Information } from '../data/schema'
 
 function isEmptyHtml(value: string) {
@@ -41,15 +42,26 @@ function isEmptyHtml(value: string) {
   return text.length === 0
 }
 
-const formSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  content: z
-    .string()
-    .refine((val) => !isEmptyHtml(val), 'Content is required'),
-  status: z.enum(['draft', 'published']),
-})
+const createInformationSchema = (t: Translator) =>
+  z.object({
+    title: z
+      .string()
+      .min(
+        3,
+        t('info.form.validation.titleMin', 'Title must be at least 3 characters')
+      ),
+    content: z
+      .string()
+      .refine(
+        (val) => !isEmptyHtml(val),
+        t('info.form.validation.contentRequired', 'Content is required')
+      ),
+    status: z.enum(['draft', 'published']),
+  })
 
-export type InformationFormValues = z.infer<typeof formSchema>
+export type InformationFormValues = z.infer<
+  ReturnType<typeof createInformationSchema>
+>
 
 type UpsertDialogProps = {
   open: boolean
@@ -65,6 +77,8 @@ export function InformationsUpsertDialog({
   onSubmit,
 }: UpsertDialogProps) {
   const mode: 'create' | 'update' = currentRow ? 'update' : 'create'
+  const { t } = useTranslation()
+  const formSchema = useMemo(() => createInformationSchema(t), [t])
 
   const initialValues = useMemo<InformationFormValues>(
     () => ({
@@ -97,8 +111,8 @@ export function InformationsUpsertDialog({
       await onSubmit(values, currentRow ?? null)
     } else {
       showSubmittedData(values, mode === 'create'
-        ? 'You have created the following information:'
-        : 'You have updated the following information:'
+        ? t('info.toast.create', 'You have created the following information:')
+        : t('info.toast.update', 'You have updated the following information:')
       )
     }
     onOpenChange(false)
@@ -119,12 +133,20 @@ export function InformationsUpsertDialog({
       <DialogContent className="gap-2 sm:max-w-lg">
         <DialogHeader className="text-start">
           <DialogTitle>
-            {mode === 'create' ? 'Create Information' : 'Update Information'}
+            {mode === 'create'
+              ? t('info.dialog.createTitle', 'Create Information')
+              : t('info.dialog.updateTitle', 'Update Information')}
           </DialogTitle>
           <DialogDescription>
             {mode === 'create'
-              ? 'Add a new announcement to be displayed in the mobile app.'
-              : 'Modify the announcement details below.'}
+              ? t(
+                  'info.dialog.createDescription',
+                  'Add a new announcement to be displayed in the mobile app.'
+                )
+              : t(
+                  'info.dialog.updateDescription',
+                  'Modify the announcement details below.'
+                )}
           </DialogDescription>
         </DialogHeader>
 
@@ -139,9 +161,17 @@ export function InformationsUpsertDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>
+                    {t('info.form.fields.title.label', 'Title')}
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder="Hydration Tips for This Week" {...field} />
+                    <Input
+                      placeholder={t(
+                        'info.form.fields.title.placeholder',
+                        'Hydration Tips for This Week'
+                      )}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -153,13 +183,18 @@ export function InformationsUpsertDialog({
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Content</FormLabel>
+                  <FormLabel>
+                    {t('info.form.fields.content.label', 'Content')}
+                  </FormLabel>
                   <FormControl>
                     <WysiwygEditor
                       value={field.value ?? ''}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
-                      placeholder="Write your announcement here..."
+                      placeholder={t(
+                        'info.form.fields.content.placeholder',
+                        'Write your announcement here...'
+                      )}
                     />
                   </FormControl>
                   <FormMessage />
@@ -172,16 +207,27 @@ export function InformationsUpsertDialog({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel>
+                    {t('info.form.fields.status.label', 'Status')}
+                  </FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue
+                          placeholder={t(
+                            'info.form.fields.status.placeholder',
+                            'Select status'
+                          )}
+                        />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="draft">
+                        {t('info.status.draft', 'Draft')}
+                      </SelectItem>
+                      <SelectItem value="published">
+                        {t('info.status.published', 'Published')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -193,12 +239,18 @@ export function InformationsUpsertDialog({
 
         <DialogFooter className="gap-2">
           <DialogClose asChild>
-            <Button variant="outline" disabled={isSubmitting}>Close</Button>
+            <Button variant="outline" disabled={isSubmitting}>
+              {t('info.dialog.close', 'Close')}
+            </Button>
           </DialogClose>
           <Button type="submit" form="information-upsert-form" disabled={isSubmitting}>
             {isSubmitting
-              ? (mode === 'create' ? 'Creating...' : 'Updating...')
-              : (mode === 'create' ? 'Create' : 'Update')}
+              ? mode === 'create'
+                ? t('info.dialog.submitting.create', 'Creating...')
+                : t('info.dialog.submitting.update', 'Updating...')
+              : mode === 'create'
+                ? t('info.dialog.submit.create', 'Create')
+                : t('info.dialog.submit.update', 'Update')}
           </Button>
         </DialogFooter>
       </DialogContent>

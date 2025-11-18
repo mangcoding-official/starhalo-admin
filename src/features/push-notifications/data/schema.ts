@@ -173,7 +173,34 @@ export function createNotificationFromApi(apiNotification: ApiNotification): Not
   const createdAt = toIsoString(parsed.created_at)
   const updatedAt = toIsoString(parsed.updated_at ?? parsed.created_at)
 
-  const imageUrl = parsed.image_url ?? parsed.image ?? null
+  const rawBase =
+    import.meta.env.VITE_API_BASE_URL?.trim() ||
+    'https://starhalo.mangcoding.com'
+
+  const resolveBaseOrigin = () => {
+    try {
+      const parsed = new URL(rawBase)
+      return parsed.origin
+    } catch {
+      return rawBase.replace(/\/+$/, '')
+    }
+  }
+
+  const baseOrigin = resolveBaseOrigin().replace(/\/+$/, '')
+  const storageBase = `${baseOrigin}/storage`
+
+  const normalizeImageUrl = (value?: string | null) => {
+    if (!value) return null
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed
+    }
+    const cleaned = trimmed.replace(/^\/+/, '')
+    return `${storageBase}/${cleaned}`
+  }
+
+  const imageUrl = normalizeImageUrl(parsed.image_url) ?? normalizeImageUrl(parsed.image)
 
   const createdBy =
     typeof parsed.created_by === 'object'

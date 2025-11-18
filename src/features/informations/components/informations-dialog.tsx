@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useTranslation } from '@/lib/i18n'
 import { useInformations } from './informations-provider'
 import {
   InformationsUpsertDialog,
@@ -16,6 +17,7 @@ import type { Information } from '../data/schema'
 export function InformationsDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = useInformations()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const invalidateList = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: informationsQueryKey })
@@ -30,12 +32,16 @@ export function InformationsDialogs() {
       }),
     onSuccess: async (result) => {
       await invalidateList()
-      toast.success(result.message ?? 'Information created successfully.')
+      toast.success(
+        result.message ?? t('info.api.createSuccess', 'Information created successfully.')
+      )
       setOpen(null)
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : 'Failed to create information.'
+        error instanceof Error
+          ? error.message
+          : t('info.api.createError', 'Failed to create information.')
       toast.error(message)
     },
   })
@@ -55,13 +61,17 @@ export function InformationsDialogs() {
       }),
     onSuccess: async (result) => {
       await invalidateList()
-      toast.success(result.message ?? 'Information updated successfully.')
+      toast.success(
+        result.message ?? t('info.api.updateSuccess', 'Information updated successfully.')
+      )
       setOpen(null)
       setCurrentRow(null)
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : 'Failed to update information.'
+        error instanceof Error
+          ? error.message
+          : t('info.api.updateError', 'Failed to update information.')
       toast.error(message)
     },
   })
@@ -70,13 +80,17 @@ export function InformationsDialogs() {
     mutationFn: async (id: string) => deleteInformation(id),
     onSuccess: async (message) => {
       await invalidateList()
-      toast.success(message ?? 'Information deleted successfully.')
+      toast.success(
+        message ?? t('info.api.deleteSuccess', 'Information deleted successfully.')
+      )
       setOpen(null)
       setCurrentRow(null)
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : 'Failed to delete information.'
+        error instanceof Error
+          ? error.message
+          : t('info.api.deleteError', 'Failed to delete information.')
       toast.error(message)
     },
   })
@@ -138,15 +152,15 @@ export function InformationsDialogs() {
               void handleDelete()
             }}
             className='max-w-md'
-            title={`Delete information: ${currentRow.title || currentRow.id}?`}
-            desc={
-              <>
-                You are about to delete the information titled{' '}
-                <strong>{currentRow.title || currentRow.id}</strong>. <br />
-                This action cannot be undone.
-              </>
-            }
-            confirmText='Delete'
+            title={t('info.dialog.delete.title', 'Delete information: {title}?').replace(
+              '{title}',
+              currentRow.title || currentRow.id
+            )}
+            desc={t(
+              'info.dialog.delete.desc',
+              'You are about to delete the information titled {title}. This action cannot be undone.'
+            ).replace('{title}', currentRow.title || currentRow.id)}
+            confirmText={t('info.dialog.delete.confirm', 'Delete')}
             isLoading={deleteMutation.isPending}
           />
         </>

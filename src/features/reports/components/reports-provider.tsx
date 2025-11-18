@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import type { Report } from '../data/schema'
 
-type ReportsDialogType = 'status'
+type ReportsDialogType = 'status' | 'view'
 
 type ReportsContextType = {
   open: ReportsDialogType | null

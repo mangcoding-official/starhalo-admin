@@ -10,6 +10,7 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useTranslation } from '@/lib/i18n'
 import { usePushNotifications } from './notifications-provider'
 import { notificationSchema } from '../data/schema'
 
@@ -24,6 +25,7 @@ export function DataTableRowActions<TData>({
     const task = notificationSchema.parse(row.original)
 
     const { setOpen, setCurrentRow } = usePushNotifications()
+    const { t } = useTranslation()
 
     return (
         <DropdownMenu modal={false}>
@@ -33,7 +35,9 @@ export function DataTableRowActions<TData>({
                     className='data-[state=open]:bg-muted flex h-8 w-8 p-0'
                 >
                     <DotsHorizontalIcon className='h-4 w-4' />
-                    <span className='sr-only'>Open menu</span>
+                    <span className='sr-only'>
+                        {t('push.rowActions.openMenu', 'Open menu')}
+                    </span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' className='w-[160px]'>
@@ -43,7 +47,7 @@ export function DataTableRowActions<TData>({
                         setOpen('view')
                     }}
                 >
-                    View Details
+                    {t('push.rowActions.view', 'View details')}
                     <DropdownMenuShortcut>
                         <Eye size={16} />
                     </DropdownMenuShortcut>
@@ -67,7 +71,7 @@ export function DataTableRowActions<TData>({
                         setOpen('delete')
                     }}
                 >
-                    Delete
+                    {t('push.rowActions.delete', 'Delete')}
                     <DropdownMenuShortcut>
                         <Trash2 size={16} />
                     </DropdownMenuShortcut>

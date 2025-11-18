@@ -4,13 +4,17 @@ import { id as localeID } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { getRowSerial } from '@/lib/get-row-serial'
+import { type Translator } from '@/lib/i18n'
 import type { Report } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const reportsColumns: ColumnDef<Report>[] = [
+export function createReportsColumns(t: Translator): ColumnDef<Report>[] {
+  return [
   {
     id: 'no',
-    header: ({ column }) => <DataTableColumnHeader column={column} title='No' />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('reports.columns.number', 'No')} />
+    ),
     enableSorting: false,
     enableHiding: false,
     size: 48,
@@ -19,20 +23,26 @@ export const reportsColumns: ColumnDef<Report>[] = [
     ),
   },
   {
-    accessorKey: 'reporterEmail',
-    header: ({ column }) => <DataTableColumnHeader column={column} title='Reporter' />,
-    cell: ({ row }) => <span className='font-medium'>{row.original.reporterEmail}</span>,
+    accessorKey: 'reporterName',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('reports.columns.reporter', 'Reporter')} />
+    ),
+    cell: ({ row }) => <span className='font-medium'>{row.original.reporterName}</span>,
     enableSorting: false,
   },
   {
-    accessorKey: 'reportedEmail',
-    header: ({ column }) => <DataTableColumnHeader column={column} title='Reported User' />,
-    cell: ({ row }) => <span>{row.original.reportedEmail}</span>,
+    accessorKey: 'reportedName',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('reports.columns.reported', 'Reported User')} />
+    ),
+    cell: ({ row }) => <span>{row.original.reportedName}</span>,
     enableSorting: false,
   },
   {
     accessorKey: 'reason',
-    header: ({ column }) => <DataTableColumnHeader column={column} title='Reason' />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('reports.columns.reason', 'Reason')} />
+    ),
     cell: ({ row }) => {
       const reason = row.original.reason
       return <span className='text-sm text-muted-foreground'>{reason}</span>
@@ -41,16 +51,20 @@ export const reportsColumns: ColumnDef<Report>[] = [
   },
   {
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title='Status' />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('reports.columns.status', 'Status')} />
+    ),
     cell: ({ row }) => {
       const status = row.original.status
       const variant = status === 'resolve' ? 'default' : 'secondary'
-      return <Badge variant={variant}>{status}</Badge>
+      return <Badge variant={variant}>{t(`reports.status.${status}` as const, status)}</Badge>
     },
   },
   {
     accessorKey: 'createdAt',
-    header: ({ column }) => <DataTableColumnHeader column={column} title='Created' />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('reports.columns.created', 'Created')} />
+    ),
     cell: ({ row }) => {
       const value = row.original.createdAt
       if (!value) {
@@ -64,4 +78,5 @@ export const reportsColumns: ColumnDef<Report>[] = [
     id: 'actions',
     cell: ({ row }) => <DataTableRowActions row={row} />,
   },
-]
+  ]
+}

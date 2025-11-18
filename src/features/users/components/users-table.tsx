@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   type SortingState,
   type VisibilityState,
@@ -24,8 +24,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 // import { roles } from '../data/data'
 import { type User } from '../data/schema'
+import { useTranslation } from '@/lib/i18n'
 import { DataTableBulkActions } from './data-table-bulk-actions'
-import { usersColumns as columns } from './users-columns'
+import { createUsersColumns } from './users-columns'
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -59,8 +60,10 @@ export function UsersTable({
   search,
   navigate,
 }: DataTableProps) {
+  const { t } = useTranslation()
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const columnDefs = useMemo(() => createUsersColumns(t), [t])
 
   const {
     globalFilter,
@@ -79,7 +82,7 @@ export function UsersTable({
 
   const table = useReactTable({
     data,
-    columns,
+    columns: columnDefs,
     state: {
       sorting,
       pagination,
@@ -122,7 +125,7 @@ export function UsersTable({
   }, [ensurePageInRange, pageCount, isFetching, isLoading])
 
   const visibleColumns = table.getVisibleLeafColumns()
-  const visibleColumnCount = visibleColumns.length || columns.length
+  const visibleColumnCount = visibleColumns.length || columnDefs.length
   const skeletonRowCount = Math.min(
     table.getState().pagination?.pageSize ?? 10,
     10
@@ -135,7 +138,10 @@ export function UsersTable({
     <div className='space-y-4 max-sm:has-[div[role="toolbar"]]:mb-16'>
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter users...'
+        searchPlaceholder={t(
+          'users.table.searchPlaceholder',
+          'Filter users...'
+        )}
         filters={[]}
       />
       <div className='overflow-hidden rounded-md border'>
@@ -229,7 +235,9 @@ export function UsersTable({
                   colSpan={visibleColumnCount}
                   className='h-24 text-center'
                 >
-                  {isTableEmpty ? 'No users found.' : 'No results.'}
+                  {isTableEmpty
+                    ? t('users.table.empty.noUsers', 'No users found.')
+                    : t('users.table.empty.noResults', 'No results.')}
                 </TableCell>
               </TableRow>
             )}

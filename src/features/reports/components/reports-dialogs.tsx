@@ -17,33 +17,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useTranslation } from '@/lib/i18n'
 import { useReports } from './reports-provider'
 import { reportStatusOptions } from '../data/data'
 import type { ReportStatus } from '../data/schema'
 import { updateReportStatus } from '../api/update-report-status'
 import { reportsQueryKey } from '../hooks/use-reports-query'
+import { ReportsViewDialog } from './reports-view-dialog'
 
 export function ReportsDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = useReports()
-  if (!currentRow) {
-    return null
+
+  const handleClose = () => {
+    setCurrentRow(null)
+    setOpen(null)
   }
+
   return (
-    <ReportStatusDialog
-      open={open === 'status'}
-      onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          setCurrentRow(null)
-          setOpen(null)
-        } else {
-          setOpen('status')
-        }
-      }}
-      reportId={currentRow.id}
-      initialStatus={currentRow.status}
-      reporterEmail={currentRow.reporterEmail}
-      reportedEmail={currentRow.reportedEmail}
-    />
+    <>
+      <ReportsViewDialog
+        report={currentRow}
+        open={Boolean(currentRow) && open === 'view'}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            handleClose()
+          } else {
+            setOpen('view')
+          }
+        }}
+      />
+      {currentRow ? (
+        <ReportStatusDialog
+          open={open === 'status'}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              handleClose()
+            } else {
+              setOpen('status')
+            }
+          }}
+          reportId={currentRow.id}
+          initialStatus={currentRow.status}
+          reporterName={currentRow.reporterName}
+          reportedName={currentRow.reportedName}
+        />
+      ) : null}
+    </>
   )
 }
 
@@ -52,8 +71,8 @@ type ReportStatusDialogProps = {
   onOpenChange: (open: boolean) => void
   reportId: string
   initialStatus: ReportStatus
-  reporterEmail: string
-  reportedEmail: string
+  reporterName: string
+  reportedName: string
 }
 
 function ReportStatusDialog({
@@ -61,11 +80,12 @@ function ReportStatusDialog({
   onOpenChange,
   reportId,
   initialStatus,
-  reporterEmail,
-  reportedEmail,
+  reporterName,
+  reportedName,
 }: ReportStatusDialogProps) {
   const [status, setStatus] = useState<ReportStatus>(initialStatus)
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (open) {
@@ -77,11 +97,14 @@ function ReportStatusDialog({
     mutationFn: async (nextStatus: ReportStatus) => updateReportStatus(reportId, { status: nextStatus }),
     onSuccess: async (message) => {
       await queryClient.invalidateQueries({ queryKey: reportsQueryKey, exact: false })
-      toast.success(message ?? 'Report status updated.')
+      toast.success(message ?? t('reports.api.updateSuccess', 'Report status updated.'))
       onOpenChange(false)
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to update report.'
+      const message =
+        error instanceof Error
+          ? error.message
+          : t('reports.api.updateError', 'Failed to update report.')
       toast.error(message)
     },
   })
@@ -90,22 +113,28 @@ function ReportStatusDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle>Update Report Status</DialogTitle>
+          <DialogTitle>{t('reports.dialog.title', 'Update Report Status')}</DialogTitle>
           <DialogDescription>
-            Reporter: <strong>{reporterEmail}</strong> · Reported user: <strong>{reportedEmail}</strong>
+            {t('reports.dialog.description', 'Reporter: {reporter} · Reported user: {reported}')
+              .replace('{reporter}', reporterName)
+              .replace('{reported}', reportedName)}
           </DialogDescription>
         </DialogHeader>
 
         <div className='space-y-2'>
-          <label className='text-sm font-medium'>Status</label>
+          <label className='text-sm font-medium'>
+            {t('reports.dialog.statusLabel', 'Status')}
+          </label>
           <Select value={status} onValueChange={(value) => setStatus(value as ReportStatus)}>
             <SelectTrigger className='w-full'>
-              <SelectValue placeholder='Select status' />
+              <SelectValue
+                placeholder={t('reports.dialog.statusPlaceholder', 'Select status')}
+              />
             </SelectTrigger>
             <SelectContent>
               {reportStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey, option.label)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -114,10 +143,12 @@ function ReportStatusDialog({
 
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
-            Cancel
+            {t('reports.dialog.cancel', 'Cancel')}
           </Button>
           <Button onClick={() => mutation.mutate(status)} disabled={mutation.isPending}>
-            {mutation.isPending ? 'Saving...' : 'Save'}
+            {mutation.isPending
+              ? t('reports.dialog.saving', 'Saving...')
+              : t('reports.dialog.save', 'Save')}
           </Button>
         </DialogFooter>
       </DialogContent>

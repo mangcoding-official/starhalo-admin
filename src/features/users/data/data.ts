@@ -9,21 +9,25 @@ export const callTypes = new Map<UserStatus, string>([
 export const roles = [
   {
     label: 'Superadmin',
+    labelKey: 'users.roles.superadmin',
     value: 'superadmin',
     icon: Shield,
   },
   {
     label: 'Admin',
+    labelKey: 'users.roles.admin',
     value: 'admin',
     icon: UserCheck,
   },
   {
     label: 'Manager',
+    labelKey: 'users.roles.manager',
     value: 'manager',
     icon: Users,
   },
   {
     label: 'Cashier',
+    labelKey: 'users.roles.cashier',
     value: 'cashier',
     icon: CreditCard,
   },

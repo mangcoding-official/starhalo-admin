@@ -7,7 +7,7 @@ export type UseReportsQueryOptions = ReportsQueryParams & {
   enabled?: boolean
 }
 
-export function useReportsQuery({ page, perPage, search, status, enabled = true }: UseReportsQueryOptions) {
+export function useReportsQuery({ page, perPage, search, status, sort, enabled = true }: UseReportsQueryOptions) {
   return useQuery({
     queryKey: [
       ...reportsQueryKey,
@@ -16,6 +16,7 @@ export function useReportsQuery({ page, perPage, search, status, enabled = true 
         perPage: perPage ?? 10,
         search: search ?? '',
         status: status ?? '',
+        sort: sort ?? 'desc',
       },
     ],
     queryFn: () => getReports({
@@ -23,6 +24,7 @@ export function useReportsQuery({ page, perPage, search, status, enabled = true 
       perPage: perPage ?? 10,
       search: search ?? '',
       status: status ?? '',
+      sort: sort ?? 'desc',
     }),
     placeholderData: keepPreviousData,
     enabled,

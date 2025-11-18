@@ -8,6 +8,7 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { useTranslation } from '@/lib/i18n'
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersProvider } from './components/users-provider'
 import { UsersTable } from './components/users-table'
@@ -18,6 +19,7 @@ const route = getRouteApi('/_authenticated/users/')
 export function Users() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
+  const { t } = useTranslation()
 
   const page = search.page ?? 1
   const pageSize = search.pageSize ?? 10
@@ -83,9 +85,14 @@ export function Users() {
       <Main>
         <div className='mb-4 flex flex-wrap items-center justify-between space-y-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>User List</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>
+              {t('users.page.title', 'User List')}
+            </h2>
             <p className='text-muted-foreground'>
-              Manage your users and their roles here.
+              {t(
+                'users.page.description',
+                'Manage your users and their roles here.'
+              )}
             </p>
           </div>
           {/* <UsersPrimaryButtons /> */}

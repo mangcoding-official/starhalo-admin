@@ -8,6 +8,7 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { ProfileDropdown } from '@/components/profile-dropdown'
+import { useTranslation } from '@/lib/i18n'
 import { ReportsProvider } from './components/reports-provider'
 import { ReportsTable } from './components/reports-table'
 import { useReportsQuery } from './hooks/use-reports-query'
@@ -18,6 +19,7 @@ const route = getRouteApi('/_authenticated/reports/')
 export function Reports() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
+  const { t } = useTranslation()
   const page = search.page ?? 1
   const pageSize = search.pageSize ?? 10
   const searchTerm = typeof search.s === 'string' && search.s.trim().length > 0 ? search.s : undefined
@@ -84,8 +86,12 @@ export function Reports() {
       <Main>
         <div className='mb-2 flex flex-wrap items-center justify-between gap-4'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>Reports</h2>
-            <p className='text-muted-foreground'>Review and resolve user reports.</p>
+            <h2 className='text-2xl font-bold tracking-tight'>
+              {t('reports.page.title', 'Reports')}
+            </h2>
+            <p className='text-muted-foreground'>
+              {t('reports.page.description', 'Review and resolve user reports.')}
+            </p>
           </div>
         </div>
         <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0'>

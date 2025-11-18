@@ -35,7 +35,7 @@ export const sidebarData: SidebarData = {
   ],
   navGroups: [
     {
-      title: 'General',
+      title: 'nav.group.general',
       items: [
         // {
         //   title: 'Dashboard',
@@ -43,22 +43,22 @@ export const sidebarData: SidebarData = {
         //   icon: LayoutDashboard,
         // },
         {
-          title: 'Users',
+          title: 'nav.item.users',
           url: '/users',
           icon: Users,
         },
         {
-          title: 'Information',
+          title: 'nav.item.information',
           url: '/informations',
           icon: Info,
         },
         {
-          title: 'Push Notifications',
+          title: 'nav.item.pushNotifications',
           url: '/push-notifications',
           icon: Bell,
         },
         {
-          title: 'Reports',
+          title: 'nav.item.reports',
           url: '/reports',
           icon: ShieldAlert,
         },

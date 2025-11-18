@@ -72,6 +72,13 @@ type DrinkHistoryRow = {
   percentage: number
 }
 
+type FollowerRow = {
+  id: string
+  user: FormattedUserListItem
+  context?: string
+  followedAt?: string
+}
+
 type DetailSectionKey = 'overview' | 'hydration' | 'drinkHistory' | 'engagement' | 'notifications'
 
 function parseNullableDate(value?: string | null) {
@@ -137,6 +144,38 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
     () => extractRecordArray(rawDetail?.followers_all),
     [rawDetail]
   )
+  const followerRows = useMemo<FollowerRow[]>(() => {
+    if (!followersAll.length) return []
+
+    return followersAll.reduce<FollowerRow[]>((acc, entry, index) => {
+      const statusKey = getFollowerStatus(entry)
+      if (!isAcceptedFollowerStatus(statusKey)) {
+        return acc
+      }
+
+      const user = formatUserListItem(entry)
+      const pivot = getRecordField(entry ?? {}, ['pivot', 'meta'])
+      const identifier =
+        getStringField(entry ?? {}, ['id', 'uuid']) ??
+        getStringField(pivot ?? {}, ['id', 'uuid']) ??
+        `${user.primary}-${index}`
+
+      const followedAt =
+        formatTimestamp(
+          getStringField(entry ?? {}, ['created_at', 'followed_at', 'updated_at', 'time']) ??
+            getStringField(pivot ?? {}, ['created_at', 'followed_at', 'timestamp'])
+        ) ?? undefined
+
+      acc.push({
+        id: identifier,
+        user,
+        context: formatFollowerContext(entry, statusKey),
+        followedAt,
+      })
+
+      return acc
+    }, [])
+  }, [followersAll])
   const followingList = useMemo(
     () => extractRecordArray(rawDetail?.following),
     [rawDetail]
@@ -849,33 +888,43 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                   </Card>
                 ) : null}
 
-                {followersAll.length ? (
+                {followerRows.length ? (
                   <Card className='border border-border/60 bg-card/60'>
                     <CardHeader>
                       <CardTitle>Followers</CardTitle>
                       <CardDescription>
-                        Showing the latest {Math.min(followersAll.length, 8)} followers
+                        Showing the latest {Math.min(followerRows.length, 8)} accepted{' '}
+                        {followerRows.length === 1 ? 'follower' : 'followers'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ul className='space-y-2 text-sm'>
-                        {followersAll.slice(0, 8).map((item, index) => {
-                          const user = formatUserListItem(item)
-                          return (
-                            <li
-                              key={`follower-${user.primary}-${index}`}
-                              className='rounded-md border border-border/40 bg-muted/10 px-3 py-2'
-                            >
-                              <div className='font-semibold'>{user.primary}</div>
-                              {user.secondary ? (
-                                <div className='text-xs text-muted-foreground'>{user.secondary}</div>
+                        {followerRows.slice(0, 8).map((row) => (
+                          <li
+                            key={row.id}
+                            className='flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 px-3 py-2'
+                          >
+                            <Avatar className='h-10 w-10'>
+                              <AvatarImage src={row.user.avatarUrl ?? undefined} alt={row.user.primary} />
+                              <AvatarFallback>{row.user.fallback}</AvatarFallback>
+                            </Avatar>
+                            <div className='flex flex-col'>
+                              <span className='font-semibold'>{row.user.primary}</span>
+                              {row.user.secondary ? (
+                                <span className='text-xs text-muted-foreground'>{row.user.secondary}</span>
                               ) : null}
-                            </li>
-                          )
-                        })}
-                        {followersAll.length > 8 ? (
+                              {row.context || row.followedAt ? (
+                                <span className='text-xs text-muted-foreground'>
+                                  {row.context ?? 'Accepted'}
+                                  {row.followedAt ? ` • ${row.followedAt}` : null}
+                                </span>
+                              ) : null}
+                            </div>
+                          </li>
+                        ))}
+                        {followerRows.length > 8 ? (
                           <li className='text-xs text-muted-foreground'>
-                            +{followersAll.length - 8} more followers
+                            +{followerRows.length - 8} more accepted followers
                           </li>
                         ) : null}
                       </ul>
@@ -883,7 +932,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                   </Card>
                 ) : null}
 
-                {followingList.length ? (
+                {/* {followingList.length ? ( */}
                   <Card className='border border-border/60 bg-card/60'>
                     <CardHeader>
                       <CardTitle>Friends</CardTitle>
@@ -921,9 +970,9 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                       </ul>
                     </CardContent>
                   </Card>
-                ) : null}
+                 {/* ) : null} */}
 
-                {mutedUsersList.length ? (
+                {/* {UsersList.length ? (
                   <Card className='border border-border/60 bg-card/60'>
                     <CardHeader>
                       <CardTitle>Muted Users</CardTitle>
@@ -959,7 +1008,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                       </ul>
                     </CardContent>
                   </Card>
-                ) : null}
+                ) : null} */}
 
                 {blockedUsersList.length ? (
                   <Card className='border border-border/60 bg-card/60'>
@@ -1214,6 +1263,37 @@ function getRecordField(record: UnknownRecord, keys: string[]): UnknownRecord | 
     }
   }
   return undefined
+}
+
+function getFollowerStatus(entry: UnknownRecord | null | undefined): string | undefined {
+  if (!entry) return undefined
+  const pivot = getRecordField(entry, ['pivot', 'meta'])
+  const candidate =
+    getStringField(entry, ['status', 'relationship', 'relation', 'type', 'source', 'category']) ??
+    getStringField(pivot ?? {}, ['status', 'relationship', 'relation', 'type', 'source', 'category'])
+
+  return candidate?.trim().toLowerCase() || undefined
+}
+
+const ACCEPTED_FOLLOWER_STATUSES = new Set(['accept', 'accepted', 'approve', 'approved'])
+
+function isAcceptedFollowerStatus(status?: string) {
+  if (!status) return false
+  return ACCEPTED_FOLLOWER_STATUSES.has(status.toLowerCase())
+}
+
+function formatFollowerContext(
+  entry: UnknownRecord | null | undefined,
+  statusHint?: string
+): string | undefined {
+  const normalizedStatus = statusHint ?? getFollowerStatus(entry)
+  if (!normalizedStatus) return undefined
+
+  return normalizedStatus
+    .split(/[\s_]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ')
 }
 
 type FormattedUserListItem = {

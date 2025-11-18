@@ -6,8 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
-import type { Notification, NotificationStatus } from '../data/schema'
+import { useTranslation } from '@/lib/i18n'
+import type { Notification } from '../data/schema'
 
 type PushNotificationViewDialogProps = {
   notification: Notification | null
@@ -25,21 +25,6 @@ function formatDateTime(value?: string | null) {
     }
   }
   return { display: value, raw: value }
-}
-
-function getStatusVariant(status: NotificationStatus) {
-  switch (status) {
-    case 'sent':
-      return 'default'
-    case 'scheduled':
-    case 'sending':
-      return 'secondary'
-    case 'failed':
-    case 'canceled':
-      return 'destructive'
-    default:
-      return 'outline'
-  }
 }
 
 function normalizeText(value?: string | null) {
@@ -67,6 +52,7 @@ export function PushNotificationViewDialog({
   open,
   onOpenChange,
 }: PushNotificationViewDialogProps) {
+  const { t } = useTranslation()
   if (!notification) {
     return null
   }
@@ -77,12 +63,14 @@ export function PushNotificationViewDialog({
   const updatedAt = formatDateTime(notification.updatedAt)
   const hasResultSummary =
     notification.resultSummary !== null && typeof notification.resultSummary !== 'undefined'
+  const hasImage =
+    typeof notification.imageUrl === 'string' && notification.imageUrl.trim().length > 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Push notification detail</DialogTitle>
+          <DialogTitle>{t('push.view.title', 'Push notification detail')}</DialogTitle>
           <DialogDescription>
             {normalizeText(notification.title)}
           </DialogDescription>
@@ -90,67 +78,97 @@ export function PushNotificationViewDialog({
 
         <div className="space-y-6">
           <section className="space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Status
-              </p>
-              <Badge variant={getStatusVariant(notification.status)}>
-                {notification.status}
-              </Badge>
-            </div>
-
             <dl className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <dt className="text-xs uppercase text-muted-foreground">
-                  Target
-                </dt>
-                <dd className="text-sm">{normalizeText(notification.target)}</dd>
-              </div>
-              <div className="space-y-1">
-                <dt className="text-xs uppercase text-muted-foreground">
-                  Priority
+                  {t('push.view.target', 'Target')}
                 </dt>
                 <dd className="text-sm">
-                  {normalizeText(notification.priority)}
+                  {t(
+                    `push.target.${notification.target}` as const,
+                    normalizeText(notification.target)
+                  )}
                 </dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-xs uppercase text-muted-foreground">
-                  Schedule Date
+                  {t('push.view.priority', 'Priority')}
+                </dt>
+                <dd className="text-sm">
+                  {t(
+                    `push.priority.${notification.priority}` as const,
+                    normalizeText(notification.priority)
+                  )}
+                </dd>
+              </div>
+              <div className="space-y-1">
+                <dt className="text-xs uppercase text-muted-foreground">
+                  {t('push.view.scheduleDate', 'Schedule Date')}
                 </dt>
                 <dd className="text-sm">{scheduleDate.display}</dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-xs uppercase text-muted-foreground">
-                  Send At (send_at)
+                  {t('push.view.sendAt', 'Send At (send_at)')}
                 </dt>
                 <dd className="text-sm space-y-1">
                   <span>{sendAt.display}</span>
                   {sendAt.raw && sendAt.raw !== sendAt.display && (
                     <span className="block text-xs text-muted-foreground">
-                      Raw: {sendAt.raw}
+                      {t('push.view.rawLabel', 'Raw:')} {sendAt.raw}
                     </span>
                   )}
                 </dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-xs uppercase text-muted-foreground">
-                  Created At
+                  {t('push.view.createdAt', 'Created At')}
                 </dt>
                 <dd className="text-sm">{createdAt.display}</dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-xs uppercase text-muted-foreground">
-                  Updated At
+                  {t('push.view.updatedAt', 'Updated At')}
                 </dt>
                 <dd className="text-sm">{updatedAt.display}</dd>
               </div>
             </dl>
           </section>
 
+          {hasImage && (
+            <section className="space-y-2">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                {t('push.view.imageLabel', 'Image')}
+              </p>
+              <div className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-center">
+                <div className="w-full max-w-xs overflow-hidden rounded-md border border-border/60 bg-background">
+                  <img
+                    src={notification.imageUrl ?? undefined}
+                    alt={notification.title ?? 'Notification image'}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="flex-1 break-all text-sm text-muted-foreground">
+                  <p className="text-xs uppercase text-muted-foreground">
+                    {t('push.view.imageLinkLabel', 'Image URL')}
+                  </p>
+                  <a
+                    href={notification.imageUrl ?? '#'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    {notification.imageUrl}
+                  </a>
+                </div>
+              </div>
+            </section>
+          )}
+
           <section className="space-y-2">
             <p className="text-xs font-semibold uppercase text-muted-foreground">
-              Title
+              {t('push.view.titleLabel', 'Title')}
             </p>
             <p className="rounded-md border bg-muted/40 p-3 text-sm font-medium">
               {normalizeText(notification.title)}
@@ -159,7 +177,7 @@ export function PushNotificationViewDialog({
 
           <section className="space-y-2">
             <p className="text-xs font-semibold uppercase text-muted-foreground">
-              Content
+              {t('push.view.contentLabel', 'Content')}
             </p>
             <p className="rounded-md border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
               {normalizeText(notification.content)}
@@ -169,7 +187,7 @@ export function PushNotificationViewDialog({
           {hasResultSummary && (
             <section className="space-y-2">
               <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Result Summary
+                {t('push.view.resultSummary', 'Result Summary')}
               </p>
               <pre className="rounded-md border bg-muted/30 p-3 text-xs overflow-x-auto">
                 {renderResultSummary(notification.resultSummary)}

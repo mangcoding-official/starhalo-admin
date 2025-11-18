@@ -2,12 +2,16 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
-import type { Information } from '../data/schema'
-import { DataTableRowActions } from './data-table-row-actions'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { getRowSerial } from '@/lib/get-row-serial'
+import { type Translator } from '@/lib/i18n'
+import type { Information } from '../data/schema'
+import { DataTableRowActions } from './data-table-row-actions'
 
-export const informationsColumns: ColumnDef<Information>[] = [
+export function createInformationColumns(
+  t: Translator
+): ColumnDef<Information>[] {
+  return [
   // {
   //   id: 'select',
   //   header: ({ table }) => (
@@ -34,7 +38,10 @@ export const informationsColumns: ColumnDef<Information>[] = [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="No" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('info.columns.number', 'No')}
+      />
     ),
     cell: ({ row, table }) => (
       <span className="font-mono text-xs">{getRowSerial(table, row.index)}</span>
@@ -46,7 +53,10 @@ export const informationsColumns: ColumnDef<Information>[] = [
   {
     accessorKey: 'title',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Title" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('info.columns.title', 'Title')}
+      />
     ),
     cell: ({ row }) => <span className="font-medium">{row.getValue('title')}</span>,
     enableSorting: false,
@@ -54,7 +64,10 @@ export const informationsColumns: ColumnDef<Information>[] = [
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('info.columns.status', 'Status')}
+      />
     ),
     cell: ({ row }) => {
       const status = String(row.getValue('status'))
@@ -64,13 +77,22 @@ export const informationsColumns: ColumnDef<Information>[] = [
       }
   type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
   const variant = (map[status] ?? 'secondary') as BadgeVariant
-  return <Badge variant={variant}>{status}</Badge>
+  const translatedStatus =
+    status === 'draft'
+      ? t('info.status.draft', 'Draft')
+      : status === 'published'
+        ? t('info.status.published', 'Published')
+        : status
+  return <Badge variant={variant}>{translatedStatus}</Badge>
     },
   },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('info.columns.created', 'Created')}
+      />
     ),
     cell: ({ row }) => {
       const value = row.original.createdAt
@@ -88,3 +110,4 @@ export const informationsColumns: ColumnDef<Information>[] = [
     cell: ({ row }) => <DataTableRowActions row={row} />,
   },
 ]
+}

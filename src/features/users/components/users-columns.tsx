@@ -1,20 +1,22 @@
 import { type ColumnDef, type Row } from '@tanstack/react-table'
+import { EyeIcon } from 'lucide-react'
+import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { getRowSerial } from '@/lib/get-row-serial'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
+import { useTranslation, type Translator } from '@/lib/i18n'
 import { type User } from '../data/schema'
-import { EyeIcon } from 'lucide-react'
 import { useUsers } from './users-provider'
-import { format } from 'date-fns'
 
 function ViewActionCell({ row }: { row: Row<User> }) {
   const { setOpen, setCurrentRow } = useUsers()
+  const { t } = useTranslation()
   return (
     <div className='flex justify-end'>
       <button
-        aria-label='View user'
-        className='p-1 pr-4 rounded hover:bg-muted/50 cursor-pointer'
+        aria-label={t('users.rowActions.view', 'View user')}
+        className='cursor-pointer rounded p-1 pr-4 hover:bg-muted/50'
         onClick={() => {
           setCurrentRow(row.original)
           setOpen('view')
@@ -26,11 +28,15 @@ function ViewActionCell({ row }: { row: Row<User> }) {
   )
 }
 
-export const usersColumns: ColumnDef<User>[] = [
-  {
+export function createUsersColumns(t: Translator): ColumnDef<User>[] {
+  return [
+    {
     id: 'select',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='No' />
+      <DataTableColumnHeader
+        column={column}
+        title={t('users.columns.number', 'No')}
+      />
     ),
     meta: {
       className: cn('sticky md:table-cell start-0 z-10 rounded-tl-[inherit]'),
@@ -38,19 +44,22 @@ export const usersColumns: ColumnDef<User>[] = [
     cell: ({ row, table }) => {
       const serial = getRowSerial(table, row.index)
       return (
-        <span className="whitespace-nowrap text-sm text-muted-foreground">
+        <span className='whitespace-nowrap text-sm text-muted-foreground'>
           {serial}
         </span>
-      );
+      )
     },
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'username',
-    // header: ({ column }) => (
-    //   <DataTableColumnHeader column={column} title='Username' />
-    // ),
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title={t('users.columns.username', 'Username')}
+      />
+    ),
     cell: ({ row }) => (
       <LongText className='max-w-36'>{row.getValue('username')}</LongText>
     ),
@@ -76,9 +85,12 @@ export const usersColumns: ColumnDef<User>[] = [
   // },
   {
     accessorKey: 'email',
-    // header: ({ column }) => (
-    //   <DataTableColumnHeader column={column} title='Email' />
-    // ),
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title={t('users.columns.email', 'Email')}
+      />
+    ),
     cell: ({ row }) => (
       <div className='w-fit text-nowrap'>{row.getValue('email')}</div>
     ),
@@ -86,7 +98,10 @@ export const usersColumns: ColumnDef<User>[] = [
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Joined' />
+      <DataTableColumnHeader
+        column={column}
+        title={t('users.columns.joined', 'Joined')}
+      />
     ),
     cell: ({ row }) => {
       const date = row.original.createdAt
@@ -146,5 +161,6 @@ export const usersColumns: ColumnDef<User>[] = [
     },
     enableSorting: false,
     enableHiding: false,
-  },
-]
+    },
+  ]
+}

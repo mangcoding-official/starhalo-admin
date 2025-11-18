@@ -1,10 +1,11 @@
 import { type ColumnDef } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
-import type { Notification } from '../data/schema'
 import { DataTableColumnHeader } from '@/components/data-table'
-import { DataTableRowActions } from './data-table-row-actions'
 import { getRowSerial } from '@/lib/get-row-serial'
+import { type Translator } from '@/lib/i18n'
+import type { Notification } from '../data/schema'
+import { DataTableRowActions } from './data-table-row-actions'
 
 function getTimestamp(value: unknown): number | null {
   if (typeof value !== 'string') return null
@@ -13,7 +14,10 @@ function getTimestamp(value: unknown): number | null {
   return Number.isNaN(time) ? null : time
 }
 
-export const pushNotificationsColumns: ColumnDef<Notification>[] = [
+export function createPushNotificationsColumns(
+  t: Translator
+): ColumnDef<Notification>[] {
+  return [
 
   // {
   //   id: 'select',
@@ -42,7 +46,10 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
   {
     id: 'no',
     header: ({ column} ) => (
-      <DataTableColumnHeader column={column} title="No" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('push.columns.number', 'No')}
+      />
     ),
     enableSorting: false,
     enableHiding: false,
@@ -55,7 +62,10 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
   {
     accessorKey: 'title',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Title" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('push.columns.title', 'Title')}
+      />
     ),
     cell: ({ row }) => <span className="font-medium">{row.getValue('title')}</span>,
     enableSorting: false,
@@ -64,7 +74,10 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
   {
     accessorKey: 'content',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Content" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('push.columns.content', 'Content')}
+      />
     ),
     cell: ({ row }) => {
       const v = String(row.getValue('content') ?? '')
@@ -76,7 +89,10 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
   {
     accessorKey: 'scheduleDate',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Scheduled Date" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('push.columns.scheduleDate', 'Scheduled Date')}
+      />
     ),
     cell: ({ row }) => {
       const value = row.getValue('scheduleDate') as string | null | undefined
@@ -99,7 +115,10 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
   {
     accessorKey: 'sentAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Send At" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('push.columns.sentAt', 'Send At')}
+      />
     ),
     cell: ({ row }) => {
       const value = row.original.sentAt
@@ -121,7 +140,10 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
+      <DataTableColumnHeader
+        column={column}
+        title={t('push.columns.createdAt', 'Created At')}
+      />
     ),
     cell: ({ row }) => {
       const value = row.getValue('createdAt') as string | null | undefined
@@ -153,3 +175,4 @@ export const pushNotificationsColumns: ColumnDef<Notification>[] = [
     cell: ({ row }) => <DataTableRowActions row={row} />,
   },
 ]
+}

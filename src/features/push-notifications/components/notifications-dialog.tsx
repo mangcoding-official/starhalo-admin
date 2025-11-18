@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useTranslation } from '@/lib/i18n'
 import { usePushNotifications } from './notifications-provider'
 import {
   PushNotificationsUpsertDialog,
@@ -29,12 +30,14 @@ function mapFormValuesToPayload(values: PushNotificationFormValues) {
     scheduleDate,
     target: 'all' as const,
     priority: 'normal' as const,
+    imageFile: values.imageFile ?? null,
   }
 }
 
 export function PushNotificationsDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = usePushNotifications()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const invalidateList = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: pushNotificationsQueryKey })
@@ -46,7 +49,7 @@ export function PushNotificationsDialogs() {
     onSuccess: async (result) => {
       await invalidateList()
       toast.success(
-        result.message ?? 'Push notification created successfully.'
+        result.message ?? t('push.api.createSuccess', 'Push notification created successfully.')
       )
       setOpen(null)
     },
@@ -54,7 +57,7 @@ export function PushNotificationsDialogs() {
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to create push notification.'
+          : t('push.api.createError', 'Failed to create push notification.')
       toast.error(message)
     },
   })
@@ -71,7 +74,7 @@ export function PushNotificationsDialogs() {
     onSuccess: async (result) => {
       await invalidateList()
       toast.success(
-        result.message ?? 'Push notification updated successfully.'
+        result.message ?? t('push.api.updateSuccess', 'Push notification updated successfully.')
       )
       setOpen(null)
       setCurrentRow(null)
@@ -80,7 +83,7 @@ export function PushNotificationsDialogs() {
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to update push notification.'
+          : t('push.api.updateError', 'Failed to update push notification.')
       toast.error(message)
     },
   })
@@ -89,7 +92,9 @@ export function PushNotificationsDialogs() {
     mutationFn: async (id: string) => deletePushNotification(id),
     onSuccess: async (message) => {
       await invalidateList()
-      toast.success(message ?? 'Push notification deleted successfully.')
+      toast.success(
+        message ?? t('push.api.deleteSuccess', 'Push notification deleted successfully.')
+      )
       setOpen(null)
       setCurrentRow(null)
     },
@@ -97,7 +102,7 @@ export function PushNotificationsDialogs() {
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to delete push notification.'
+          : t('push.api.deleteError', 'Failed to delete push notification.')
       toast.error(message)
     },
   })
@@ -160,15 +165,15 @@ export function PushNotificationsDialogs() {
             }}
             isLoading={deleteMutation.isPending}
             className='max-w-md'
-            title={`Delete push notification: ${currentRow.title || currentRow.id}?`}
-            desc={
-              <>
-                You are about to delete the push notification{' '}
-                <strong>{currentRow.title || currentRow.id}</strong>. <br />
-                This action cannot be undone.
-              </>
-            }
-            confirmText='Delete'
+            title={t('push.dialog.delete.title', 'Delete push notification: {title}?').replace(
+              '{title}',
+              currentRow.title || currentRow.id
+            )}
+            desc={t(
+              'push.dialog.delete.desc',
+              'You are about to delete the push notification {title}. This action cannot be undone.'
+            ).replace('{title}', currentRow.title || currentRow.id)}
+            confirmText={t('push.dialog.delete.confirm', 'Delete')}
           />
           <PushNotificationViewDialog
             key={`push-notifications-view-${currentRow.id}`}

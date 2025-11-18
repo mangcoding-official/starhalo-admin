@@ -12,6 +12,7 @@ export type PushNotificationPayloadInput = Pick<
   status: NotificationStatus
   target?: (typeof NOTIF_TARGET)[number]
   priority?: (typeof NOTIF_PRIORITY)[number]
+  imageFile?: File | null
 }
 
 export function toApiStatus(status: NotificationStatus): string {
@@ -46,7 +47,7 @@ export function formatDateForApi(value: string | null | undefined): string | nul
 
 export function mapPushNotificationPayload(
   payload: PushNotificationPayloadInput
-): Record<string, unknown> {
+): Record<string, unknown> | FormData {
   if (!notificationStatusSchema.safeParse(payload.status).success) {
     throw new Error('Invalid status value')
   }
@@ -62,6 +63,7 @@ export function mapPushNotificationPayload(
 
   if (scheduleAt !== null) {
     body.schedule_at = scheduleAt
+    body.scheduled_at = scheduleAt
   }
 
   if (payload.target && NOTIF_TARGET.includes(payload.target)) {
@@ -70,6 +72,21 @@ export function mapPushNotificationPayload(
 
   if (payload.priority && NOTIF_PRIORITY.includes(payload.priority)) {
     body.priority = payload.priority
+  }
+
+  const hasImageFile =
+    typeof File !== 'undefined' && payload.imageFile instanceof File
+
+  if (hasImageFile && payload.imageFile) {
+    const formData = new FormData()
+    Object.entries(body).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return
+      }
+      formData.append(key, String(value))
+    })
+    formData.append('image', payload.imageFile)
+    return formData
   }
 
   return body

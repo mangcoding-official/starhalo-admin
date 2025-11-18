@@ -23,8 +23,9 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { useTranslation } from '@/lib/i18n'
 import type { Report } from '../data/schema'
-import { reportsColumns as columns } from './reports-columns'
+import { createReportsColumns } from './reports-columns'
 import { reportStatusOptions } from '../data/data'
 
 const route = getRouteApi('/_authenticated/reports/')
@@ -48,7 +49,9 @@ export function ReportsTable({
   sorting,
   onSortingChange,
 }: ReportsTableProps) {
+  const { t } = useTranslation()
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const columns = useMemo(() => createReportsColumns(t), [t])
 
   const {
     globalFilter,
@@ -100,8 +103,8 @@ export function ReportsTable({
     globalFilterFn: (row, _columnId, value) => {
       if (!value) return true
       const searchValue = String(value).toLowerCase()
-      const reporter = String(row.getValue('reporterEmail')).toLowerCase()
-      const reported = String(row.getValue('reportedEmail')).toLowerCase()
+      const reporter = String(row.getValue('reporterName')).toLowerCase()
+      const reported = String(row.getValue('reportedName')).toLowerCase()
       const reason = String(row.getValue('reason')).toLowerCase()
       return reporter.includes(searchValue) || reported.includes(searchValue) || reason.includes(searchValue)
     },
@@ -123,13 +126,16 @@ export function ReportsTable({
     <div className="space-y-4 max-sm:has-[div[role='toolbar']]:mb-16">
       <DataTableToolbar
         table={table}
-        searchPlaceholder="Filter by reporter, reported user, or reason..."
+        searchPlaceholder={t(
+          'reports.table.searchPlaceholder',
+          'Filter by reporter, reported user, or reason...'
+        )}
         filters={[
           {
             columnId: 'status',
-            title: 'Status',
+            title: t('reports.table.filters.status', 'Status'),
             options: reportStatusOptions.map((option) => ({
-              label: option.label,
+              label: t(option.labelKey, option.label),
               value: option.value,
             })),
           },
@@ -175,7 +181,9 @@ export function ReportsTable({
             ) : (
               <TableRow>
                 <TableCell colSpan={visibleColumnCount} className="h-24 text-center">
-                  {isTableEmpty ? 'No reports found.' : 'No results.'}
+                  {isTableEmpty
+                    ? t('reports.table.empty.noReports', 'No reports found.')
+                    : t('reports.table.empty.noResults', 'No results.')}
                 </TableCell>
               </TableRow>
             )}

@@ -5,8 +5,10 @@ export type ReportStatus = z.infer<typeof reportStatusSchema>
 
 export const reportSchema = z.object({
   id: z.string(),
-  reporterEmail: z.string(),
-  reportedEmail: z.string(),
+  reporterId: z.string().nullable(),
+  reporterName: z.string(),
+  reportedId: z.string().nullable(),
+  reportedName: z.string(),
   reason: z.string(),
   status: reportStatusSchema,
   createdAt: z.date().nullable(),
@@ -14,31 +16,32 @@ export const reportSchema = z.object({
 
 export type Report = z.infer<typeof reportSchema>
 
-const nestedUserSchema = z
-  .object({
-    email: z.string().nullable().optional(),
-  })
-  .partial()
-  .optional()
-  .nullable()
-
-const apiReportSchema = z.object({
+export const apiReportSchema = z.object({
   id: z.union([z.string(), z.number()]),
-  reporter_email: z.string().nullable().optional(),
-  reporter: nestedUserSchema,
-  reporter_user: nestedUserSchema,
-  reporter_user_email: z.string().nullable().optional(),
-  reported_email: z.string().nullable().optional(),
-  reported: nestedUserSchema,
-  reported_user: nestedUserSchema,
-  target_email: z.string().nullable().optional(),
-  target_user: nestedUserSchema,
   reason: z.string().nullable().optional(),
-  message: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
   status: z.string().nullable().optional(),
-  state: z.string().nullable().optional(),
+  reporter: z
+    .object({
+      id: z.union([z.string(), z.number()]).nullable().optional(),
+      name: z.string().nullable().optional(),
+      email: z.string().nullable().optional(),
+    })
+    .partial()
+    .nullable()
+    .optional(),
+  reporter_name: z.string().nullable().optional(),
+  reporter_email: z.string().nullable().optional(),
+  reported: z
+    .object({
+      id: z.union([z.string(), z.number()]).nullable().optional(),
+      name: z.string().nullable().optional(),
+      email: z.string().nullable().optional(),
+    })
+    .partial()
+    .nullable()
+    .optional(),
+  reported_name: z.string().nullable().optional(),
+  reported_email: z.string().nullable().optional(),
   created_at: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),
 })
@@ -74,29 +77,30 @@ function parseDate(value: string | null | undefined): Date | null {
 export function createReportFromApi(apiReport: ApiReport): Report {
   const parsed = apiReportSchema.parse(apiReport)
 
-  const reporterEmail = pickString(
-    parsed.reporter_email,
-    parsed.reporter_user_email,
-    parsed.reporter?.email,
-    parsed.reporter_user?.email
-  )
+  const reporterName =
+    pickString(parsed.reporter?.name, parsed.reporter_name, parsed.reporter_email) || 'Unknown reporter'
+  const reportedName =
+    pickString(parsed.reported?.name, parsed.reported_name, parsed.reported_email) || 'Unknown user'
 
-  const reportedEmail = pickString(
-    parsed.reported_email,
-    parsed.target_email,
-    parsed.reported?.email,
-    parsed.reported_user?.email,
-    parsed.target_user?.email
-  )
+  const reporterId =
+    parsed.reporter?.id !== null && typeof parsed.reporter?.id !== 'undefined'
+      ? String(parsed.reporter.id)
+      : null
+  const reportedId =
+    parsed.reported?.id !== null && typeof parsed.reported?.id !== 'undefined'
+      ? String(parsed.reported.id)
+      : null
 
-  const reason = pickString(parsed.reason, parsed.message, parsed.description, parsed.notes) || 'No reason provided'
+  const reason = pickString(parsed.reason) || 'No reason provided'
 
   const report: Report = {
     id: String(parsed.id),
-    reporterEmail: reporterEmail || 'Unknown',
-    reportedEmail: reportedEmail || 'Unknown',
+    reporterId,
+    reporterName,
+    reportedId,
+    reportedName,
     reason,
-    status: normalizeStatus(parsed.status ?? parsed.state),
+    status: normalizeStatus(parsed.status),
     createdAt: parseDate(parsed.created_at ?? parsed.updated_at),
   }
 
