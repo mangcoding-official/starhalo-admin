@@ -282,5 +282,5 @@ export const en = {
   'reports.api.updateError': 'Failed to update report.',
 } as const
 
-export type TranslationDictionary = typeof en
-export type TranslationKey = keyof TranslationDictionary
+export type TranslationDictionary = { [K in keyof typeof en]: string }
+export type TranslationKey = keyof typeof en
