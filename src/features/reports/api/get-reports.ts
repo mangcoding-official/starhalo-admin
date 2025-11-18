@@ -49,7 +49,7 @@ function buildQueryParams({ page = 1, perPage = 10, search, status, sort }: Repo
 }
 
 export async function getReports(params: ReportsQueryParams = {}): Promise<ReportsQueryResult> {
-  const { page = 1, perPage = 10 } = params
+  // const { page = 1, perPage = 10 } = params
   const response = await apiClient.get('/api/admin/followers/report', {
     params: buildQueryParams(params),
   })
