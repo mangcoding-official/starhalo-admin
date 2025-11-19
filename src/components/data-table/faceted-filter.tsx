@@ -4,6 +4,7 @@ import { type Column } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useTranslation } from '@/lib/i18n'
 import {
   Command,
   CommandEmpty,
@@ -37,6 +38,7 @@ export function DataTableFacetedFilter<TData, TValue>({
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const facets = column?.getFacetedUniqueValues()
   const selectedValues = new Set(column?.getFilterValue() as string[])
+  const { t } = useTranslation()
 
   return (
     <Popover>
@@ -59,7 +61,10 @@ export function DataTableFacetedFilter<TData, TValue>({
                     variant='secondary'
                     className='rounded-sm px-1 font-normal'
                   >
-                    {selectedValues.size} selected
+                    {t('dataTable.filter.selectedCount', '{count} selected').replace(
+                      '{count}',
+                      String(selectedValues.size)
+                    )}
                   </Badge>
                 ) : (
                   options
@@ -83,7 +88,9 @@ export function DataTableFacetedFilter<TData, TValue>({
         <Command>
           <CommandInput placeholder={title} />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>
+              {t('dataTable.filter.noResults', 'No results found.')}
+            </CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = selectedValues.has(option.value)
@@ -133,7 +140,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     onSelect={() => column?.setFilterValue(undefined)}
                     className='justify-center text-center'
                   >
-                    Clear filters
+                    {t('dataTable.filter.clear', 'Clear filters')}
                   </CommandItem>
                 </CommandGroup>
               </>

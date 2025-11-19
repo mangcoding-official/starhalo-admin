@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { useDirection } from '@/context/direction-provider'
 import { type Collapsible, useLayout } from '@/context/layout-provider'
 import { useTheme } from '@/context/theme-provider'
+import { useTranslation } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -172,10 +173,28 @@ function RadioGroupItem({
 
 function ThemeConfig() {
   const { defaultTheme, theme, setTheme } = useTheme()
+  const { t } = useTranslation()
+  const themeOptions = [
+    {
+      value: 'system',
+      label: t('theme.option.system', 'System'),
+      icon: IconThemeSystem,
+    },
+    {
+      value: 'light',
+      label: t('theme.option.light', 'Light'),
+      icon: IconThemeLight,
+    },
+    {
+      value: 'dark',
+      label: t('theme.option.dark', 'Dark'),
+      icon: IconThemeDark,
+    },
+  ]
   return (
     <div>
       <SectionTitle
-        title='Theme'
+        title={t('config.theme.sectionTitle', 'Theme')}
         showReset={theme !== defaultTheme}
         onReset={() => setTheme(defaultTheme)}
       />
@@ -183,31 +202,18 @@ function ThemeConfig() {
         value={theme}
         onValueChange={setTheme}
         className='grid w-full max-w-md grid-cols-3 gap-4'
-        aria-label='Select theme preference'
+        aria-label={t('config.theme.ariaLabel', 'Select theme preference')}
         aria-describedby='theme-description'
       >
-        {[
-          {
-            value: 'system',
-            label: 'System',
-            icon: IconThemeSystem,
-          },
-          {
-            value: 'light',
-            label: 'Light',
-            icon: IconThemeLight,
-          },
-          {
-            value: 'dark',
-            label: 'Dark',
-            icon: IconThemeDark,
-          },
-        ].map((item) => (
+        {themeOptions.map((item) => (
           <RadioGroupItem key={item.value} item={item} isTheme />
         ))}
       </Radio>
       <div id='theme-description' className='sr-only'>
-        Choose between system preference, light mode, or dark mode
+        {t(
+          'config.theme.description',
+          'Choose between system preference, light mode, or dark mode'
+        )}
       </div>
     </div>
   )
