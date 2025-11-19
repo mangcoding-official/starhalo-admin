@@ -7,6 +7,6 @@ export const locales = {
 } as const
 
 export type Locale = keyof typeof locales
-export type TranslationKey = keyof typeof en
+export type TranslationKey = keyof typeof ko
 
-export const fallbackLocale: Locale = 'en'
+export const fallbackLocale: Locale = 'ko'
