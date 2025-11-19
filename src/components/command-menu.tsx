@@ -3,6 +3,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { ArrowRight, ChevronRight, Laptop, Moon, Sun } from 'lucide-react'
 import { useSearch } from '@/context/search-provider'
 import { useTheme } from '@/context/theme-provider'
+import { useTranslation } from '@/lib/i18n'
+import type { TranslationKey } from '@/locales'
 import {
   CommandDialog,
   CommandEmpty,
@@ -19,6 +21,19 @@ export function CommandMenu() {
   const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
+  const { t } = useTranslation()
+
+  const placeholder = t(
+    'command.placeholder',
+    'Type a command or search...'
+  )
+  const emptyStateLabel = t('command.noResults', 'No results found.')
+  const themeHeading = t('command.theme.heading', 'Theme')
+  const themeOptions = {
+    light: t('command.theme.light', 'Light'),
+    dark: t('command.theme.dark', 'Dark'),
+    system: t('command.theme.system', 'System'),
+  }
 
   const runCommand = React.useCallback(
     (command: () => unknown) => {
@@ -30,58 +45,72 @@ export function CommandMenu() {
 
   return (
     <CommandDialog modal open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder='Type a command or search...' />
+      <CommandInput placeholder={placeholder} />
       <CommandList>
         <ScrollArea type='hover' className='h-72 pe-1'>
-          <CommandEmpty>No results found.</CommandEmpty>
-          {sidebarData.navGroups.map((group) => (
-            <CommandGroup key={group.title} heading={group.title}>
-              {group.items.map((navItem, i) => {
-                if (navItem.url)
-                  return (
-                    <CommandItem
-                      key={`${navItem.url}-${i}`}
-                      value={navItem.title}
-                      onSelect={() => {
-                        runCommand(() => navigate({ to: navItem.url }))
-                      }}
-                    >
-                      <div className='flex size-4 items-center justify-center'>
-                        <ArrowRight className='text-muted-foreground/80 size-2' />
-                      </div>
-                      {navItem.title}
-                    </CommandItem>
+          <CommandEmpty>{emptyStateLabel}</CommandEmpty>
+          {sidebarData.navGroups.map((group) => {
+            const groupHeading = t(group.title as TranslationKey, group.title)
+            return (
+              <CommandGroup key={group.title} heading={groupHeading}>
+                {group.items.map((navItem, i) => {
+                  const navTitle = t(
+                    navItem.title as TranslationKey,
+                    navItem.title
                   )
 
-                return navItem.items?.map((subItem, i) => (
-                  <CommandItem
-                    key={`${navItem.title}-${subItem.url}-${i}`}
-                    value={`${navItem.title}-${subItem.url}`}
-                    onSelect={() => {
-                      runCommand(() => navigate({ to: subItem.url }))
-                    }}
-                  >
-                    <div className='flex size-4 items-center justify-center'>
-                      <ArrowRight className='text-muted-foreground/80 size-2' />
-                    </div>
-                    {navItem.title} <ChevronRight /> {subItem.title}
-                  </CommandItem>
-                ))
-              })}
-            </CommandGroup>
-          ))}
+                  if (navItem.url)
+                    return (
+                      <CommandItem
+                        key={`${navItem.url}-${i}`}
+                        value={`${navItem.title}-${navTitle}`}
+                        onSelect={() => {
+                          runCommand(() => navigate({ to: navItem.url }))
+                        }}
+                      >
+                        <div className='flex size-4 items-center justify-center'>
+                          <ArrowRight className='text-muted-foreground/80 size-2' />
+                        </div>
+                        {navTitle}
+                      </CommandItem>
+                    )
+
+                  return navItem.items?.map((subItem, index) => {
+                    const subTitle = t(
+                      subItem.title as TranslationKey,
+                      subItem.title
+                    )
+                    return (
+                      <CommandItem
+                        key={`${navItem.title}-${subItem.url}-${index}`}
+                        value={`${navItem.title}-${subItem.url}-${navTitle}-${subTitle}`}
+                        onSelect={() => {
+                          runCommand(() => navigate({ to: subItem.url }))
+                        }}
+                      >
+                        <div className='flex size-4 items-center justify-center'>
+                          <ArrowRight className='text-muted-foreground/80 size-2' />
+                        </div>
+                        {navTitle} <ChevronRight /> {subTitle}
+                      </CommandItem>
+                    )
+                  })
+                })}
+              </CommandGroup>
+            )
+          })}
           <CommandSeparator />
-          <CommandGroup heading='Theme'>
+          <CommandGroup heading={themeHeading}>
             <CommandItem onSelect={() => runCommand(() => setTheme('light'))}>
-              <Sun /> <span>Light</span>
+              <Sun /> <span>{themeOptions.light}</span>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => setTheme('dark'))}>
               <Moon className='scale-90' />
-              <span>Dark</span>
+              <span>{themeOptions.dark}</span>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => setTheme('system'))}>
               <Laptop />
-              <span>System</span>
+              <span>{themeOptions.system}</span>
             </CommandItem>
           </CommandGroup>
         </ScrollArea>
