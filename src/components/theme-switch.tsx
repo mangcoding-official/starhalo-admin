@@ -18,7 +18,7 @@ export function ThemeSwitch() {
     { value: 'light', label: t('theme.option.light', 'Light') },
     { value: 'dark', label: t('theme.option.dark', 'Dark') },
     { value: 'system', label: t('theme.option.system', 'System') },
-  ]
+  ] as const
   const toggleLabel = t('theme.toggle.label', 'Toggle theme')
 
   /* Update theme-color meta tag
@@ -40,7 +40,10 @@ export function ThemeSwitch() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
         {options.map((option) => (
-          <DropdownMenuItem key={option.value} onClick={() => setTheme(option.value)}>
+          <DropdownMenuItem
+            key={option.value}
+            onClick={() => setTheme(option.value)}
+          >
             {option.label}
             <Check
               size={14}
