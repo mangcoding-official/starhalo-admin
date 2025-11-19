@@ -21,11 +21,22 @@ type DataTableColumnHeaderProps<TData, TValue> =
     title: string
   }
 
+type ColumnMeta = {
+  label?: string
+}
+
 export function DataTableColumnHeader<TData, TValue>({
   column,
   title,
   className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
+  const meta =
+    (column.columnDef.meta ??
+      (column.columnDef.meta = {})) as ColumnMeta
+  if (!meta.label) {
+    meta.label = title
+  }
+
   if (!column.getCanSort()) {
     return <div className={cn(className)}>{title}</div>
   }

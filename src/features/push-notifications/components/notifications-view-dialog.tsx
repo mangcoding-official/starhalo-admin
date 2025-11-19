@@ -141,7 +141,7 @@ export function PushNotificationViewDialog({
                 {t('push.view.imageLabel', 'Image')}
               </p>
               <div className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-center">
-                <div className="w-full max-w-xs overflow-hidden rounded-md border border-border/60 bg-background">
+                <div className="w-full overflow-hidden rounded-md border border-border/60 bg-background">
                   <img
                     src={notification.imageUrl ?? undefined}
                     alt={notification.title ?? 'Notification image'}
@@ -149,7 +149,7 @@ export function PushNotificationViewDialog({
                     loading="lazy"
                   />
                 </div>
-                <div className="flex-1 break-all text-sm text-muted-foreground">
+                {/* <div className="flex-1 break-all text-sm text-muted-foreground">
                   <p className="text-xs uppercase text-muted-foreground">
                     {t('push.view.imageLinkLabel', 'Image URL')}
                   </p>
@@ -161,7 +161,7 @@ export function PushNotificationViewDialog({
                   >
                     {notification.imageUrl}
                   </a>
-                </div>
+                </div> */}
               </div>
             </section>
           )}

@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTranslation } from '@/lib/i18n'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -88,6 +89,7 @@ function parseNullableDate(value?: string | null) {
 }
 
 export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDialogProps) {
+  const { t } = useTranslation()
   const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly')
   const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({})
   const [openSection, setOpenSection] = useState<DetailSectionKey | null>('overview')
@@ -135,7 +137,8 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
       : null
   const canonicalDisplayName =
     normalizedProfileUsername ?? normalizedDetailName ?? normalizedListUsername ?? null
-  const headerSubtitle = canonicalDisplayName ?? 'User overview'
+  const headerSubtitle =
+    canonicalDisplayName ?? t('users.view.dialog.subtitleFallback', 'User overview')
   const handleToggleSection = (section: DetailSectionKey, isOpen: boolean) => {
     setOpenSection(isOpen ? section : null)
   }
@@ -229,63 +232,119 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
     [rawDetail]
   )
 
+  const formatBooleanLabel = (value?: boolean | null) => {
+    if (typeof value === 'boolean') {
+      return value
+        ? t('common.boolean.yes', 'Yes')
+        : t('common.boolean.no', 'No')
+    }
+    return t('common.boolean.unspecified', '-')
+  }
+
+  const alarmValueLabels = useMemo(
+    () => ({
+      empty: t('users.view.alarm.empty', '—'),
+      enabled: t('common.enabled', 'Enabled'),
+      disabled: t('common.disabled', 'Disabled'),
+    }),
+    [t]
+  )
+
   const profileDisplayFields = useMemo(() => {
     if (!profile) return []
     const preferredTarget =
       typeof profile.targetMl === 'number' ? profile.targetMl : profile.defaultTargetMl
 
     return [
-      { label: 'User ID', value: profile.userId ?? '-' },
+      { label: t('users.view.fields.userId', 'User ID'), value: profile.userId ?? '-' },
       // { label: 'Username', value: profile.username ?? '-' },
-      { label: 'Address', value: profile.address ?? '-' },
-      { label: 'Date of Birth', value: formatProfileDate(profile.dateOfBirth) },
+      { label: t('users.view.fields.address', 'Address'), value: profile.address ?? '-' },
       {
-        label: 'Username',
+        label: t('users.view.fields.dateOfBirth', 'Date of Birth'),
+        value: formatProfileDate(profile.dateOfBirth),
+      },
+      {
+        label: t('users.view.fields.username', 'Username'),
         value: (
           <ProfileAvatarPreview
             src={profile.avatar}
-            fallback={profile.username ?? canonicalDisplayName ?? 'User'}
+            fallback={
+              profile.username ?? canonicalDisplayName ?? t('users.view.fields.defaultName', 'User')
+            }
+            openLabel={t('users.view.profile.openAvatar', 'Open avatar')}
+            defaultLabel={t('users.view.profile.defaultAvatar', 'Default avatar')}
           />
         ),
       },
-      { label: 'Age', value: profile.age ?? '-' },
-      { label: 'Gender', value: profile.gender ?? '-' },
-      { label: 'Height', value: formatMeasurement(profile.height, 'cm') },
-      { label: 'Weight', value: formatMeasurement(profile.weight, 'kg') },
-      { label: 'Activity', value: profile.activity ?? '-' },
-      { label: 'Target (ml)', value: formatMeasurement(preferredTarget, 'ml') },
-      { label: 'Default Target (ml)', value: formatMeasurement(profile.defaultTargetMl, 'ml') },
-      { label: 'Target Editable', value: formatProfileBoolean(profile.isTargetMlEditable) },
-      { label: 'Pregnant', value: formatProfileBoolean(profile.isPregnant) },
-      { label: 'Lactating', value: formatProfileBoolean(profile.isLactating) },
-      { label: 'Private Account', value: formatProfileBoolean(profile.isPrivate) },
-      { label: 'Pattern', value: profile.pattern ?? '-' },
+      { label: t('users.view.fields.age', 'Age'), value: profile.age ?? '-' },
+      { label: t('users.view.fields.gender', 'Gender'), value: profile.gender ?? '-' },
+      { label: t('users.view.fields.height', 'Height'), value: formatMeasurement(profile.height, 'cm') },
+      { label: t('users.view.fields.weight', 'Weight'), value: formatMeasurement(profile.weight, 'kg') },
+      { label: t('users.view.fields.activity', 'Activity'), value: profile.activity ?? '-' },
+      { label: t('users.view.fields.target', 'Target (ml)'), value: formatMeasurement(preferredTarget, 'ml') },
       {
-        label: 'Color',
-        value: profile.color ? <ProfileColorSwatch color={profile.color} /> : '-',
-      },
-      { label: 'Device ID', value: profile.deviceId ?? '-' },
-      { label: 'LED Enabled', value: formatProfileBoolean(profile.isLed) },
-      { label: 'Vibration Enabled', value: formatProfileBoolean(profile.isFibration) },
-      { label: 'Alarm Enabled', value: formatProfileBoolean(profile.isAlarm) },
-      { label: 'Agree: Service', value: formatProfileBoolean(profile.isAgreeService) },
-      {
-        label: 'Agree: Private Data',
-        value: formatProfileBoolean(profile.isAgreePrivateData),
-      },
-      { label: 'Agree: Location', value: formatProfileBoolean(profile.isAgreeLocation) },
-      { label: 'Agree: Marketing', value: formatProfileBoolean(profile.isAgreeMarketing) },
-      {
-        label: 'Notifications Muted',
-        value: formatProfileBoolean(profile.isNotificationMuted),
+        label: t('users.view.fields.defaultTarget', 'Default Target (ml)'),
+        value: formatMeasurement(profile.defaultTargetMl, 'ml'),
       },
       {
-        label: 'Information Muted',
-        value: formatProfileBoolean(profile.isInformationMuted),
+        label: t('users.view.fields.targetEditable', 'Target Editable'),
+        value: formatBooleanLabel(profile.isTargetMlEditable),
       },
-      { label: 'Streak', value: profile.streak ?? '-' },
+      { label: t('users.view.fields.pregnant', 'Pregnant'), value: formatBooleanLabel(profile.isPregnant) },
+      { label: t('users.view.fields.lactating', 'Lactating'), value: formatBooleanLabel(profile.isLactating) },
+      {
+        label: t('users.view.fields.privateAccount', 'Private Account'),
+        value: formatBooleanLabel(profile.isPrivate),
+      },
+      { label: t('users.view.fields.pattern', 'Pattern'), value: profile.pattern ?? '-' },
+      {
+        label: t('users.view.fields.color', 'Color'),
+        value: profile.color ? (
+          <ProfileColorSwatch
+            color={profile.color}
+            label={t('users.view.fields.colorPreview', 'Profile color preview')}
+          />
+        ) : (
+          '-'
+        ),
+      },
+      { label: t('users.view.fields.deviceId', 'Device ID'), value: profile.deviceId ?? '-' },
+      { label: t('users.view.fields.ledEnabled', 'LED Enabled'), value: formatBooleanLabel(profile.isLed) },
+      {
+        label: t('users.view.fields.vibrationEnabled', 'Vibration Enabled'),
+        value: formatBooleanLabel(profile.isFibration),
+      },
+      {
+        label: t('users.view.fields.alarmEnabled', 'Alarm Enabled'),
+        value: formatBooleanLabel(profile.isAlarm),
+      },
+      {
+        label: t('users.view.fields.agreeService', 'Agree: Service'),
+        value: formatBooleanLabel(profile.isAgreeService),
+      },
+      {
+        label: t('users.view.fields.agreePrivate', 'Agree: Private Data'),
+        value: formatBooleanLabel(profile.isAgreePrivateData),
+      },
+      {
+        label: t('users.view.fields.agreeLocation', 'Agree: Location'),
+        value: formatBooleanLabel(profile.isAgreeLocation),
+      },
+      {
+        label: t('users.view.fields.agreeMarketing', 'Agree: Marketing'),
+        value: formatBooleanLabel(profile.isAgreeMarketing),
+      },
+      {
+        label: t('users.view.fields.notificationsMuted', 'Notifications Muted'),
+        value: formatBooleanLabel(profile.isNotificationMuted),
+      },
+      {
+        label: t('users.view.fields.informationMuted', 'Information Muted'),
+        value: formatBooleanLabel(profile.isInformationMuted),
+      },
+      { label: t('users.view.fields.streak', 'Streak'), value: profile.streak ?? '-' },
     ]
-  }, [profile, canonicalDisplayName])
+  }, [profile, canonicalDisplayName, t])
   const hydrationSummary = useMemo(
     () => getRecordField(hydrationReport ?? {}, ['summary']),
     [hydrationReport]
@@ -413,15 +472,18 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-[1440px] max-h-[90vh] overflow-y-auto'>
         <DialogHeader className='text-start'>
-          <DialogTitle>User Details</DialogTitle>
+          <DialogTitle>{t('users.view.dialog.title', 'User Details')}</DialogTitle>
           <DialogDescription>{headerSubtitle}</DialogDescription>
         </DialogHeader>
 
         <div className='space-y-4'>
           <DetailAccordionSection
             id='overview'
-            title='Account Overview'
-            description='Profile, status, and engagement stats.'
+            title={t('users.view.sections.overview.title', 'Account Overview')}
+            description={t(
+              'users.view.sections.overview.description',
+              'Profile, status, and engagement stats.'
+            )}
             isOpen={openSection === 'overview'}
             onToggle={handleToggleSection}
           >
@@ -482,8 +544,11 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
           <DetailAccordionSection
             id='hydration'
-            title='Hydration Insights'
-            description='Daily progress, history, and daily logs.'
+            title={t('users.view.sections.hydration.title', 'Hydration Insights')}
+            description={t(
+              'users.view.sections.hydration.description',
+              'Daily progress, history, and daily logs.'
+            )}
             isOpen={openSection === 'hydration'}
             onToggle={handleToggleSection}
           >
@@ -491,18 +556,24 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
           <Card className='border border-border/60 bg-card/60'>
             <CardHeader className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
               <div>
-                <CardTitle>Daily Hydration</CardTitle>
+                <CardTitle>{t('users.view.hydration.daily.title', 'Daily Hydration')}</CardTitle>
                 <CardDescription>
                   {hydrationOverview.date
                     ? format(hydrationOverview.date, 'EEEE, dd MMM yyyy')
-                    : 'Most recent synced hydration detail'}
+                    : t(
+                        'users.view.hydration.daily.description',
+                        'Most recent synced hydration detail'
+                      )}
                 </CardDescription>
               </div>
               <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3'>
                 <span className='text-sm font-medium text-muted-foreground'>
                   {hydrationOverview.isTargetMet
-                    ? 'Target achieved'
-                    : `${Math.round(hydrationOverview.percentage * 100)}% of target`}
+                    ? t('users.view.hydration.daily.targetAchieved', 'Target achieved')
+                    : t('users.view.hydration.daily.progress', '{percentage}% of target').replace(
+                        '{percentage}',
+                        String(Math.round(hydrationOverview.percentage * 100))
+                      )}
                 </span>
               </div>
             </CardHeader>
@@ -588,16 +659,20 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
               onValueChange={(value) => setReportType(value as 'weekly' | 'monthly')}
             >
               <SelectTrigger className='h-8 w-[120px]'>
-                <SelectValue placeholder='Weekly' />
+                <SelectValue placeholder={t('users.view.controls.weekly', 'Weekly')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='weekly'>Weekly</SelectItem>
-                <SelectItem value='monthly'>Monthly</SelectItem>
+                <SelectItem value='weekly'>
+                  {t('users.view.controls.weekly', 'Weekly')}
+                </SelectItem>
+                <SelectItem value='monthly'>
+                  {t('users.view.controls.monthly', 'Monthly')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className='flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-            <span>Range</span>
+        <div className='flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+            <span>{t('users.view.controls.range', 'Range')}</span>
             <Input
               type='date'
               value={dateRange.start ?? ''}
@@ -606,7 +681,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
               }
               className='h-8 w-[160px] text-xs'
             />
-            <span className='text-muted-foreground'>to</span>
+            <span className='text-muted-foreground'>{t('users.view.controls.to', 'to')}</span>
             <Input
               type='date'
               value={dateRange.end ?? ''}
@@ -624,7 +699,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
               onClick={() => setDateRange({})}
               disabled={!dateRange.start && !dateRange.end}
             >
-              Clear
+              {t('common.clear', 'Clear')}
             </Button>
           </div>
         </div>
@@ -635,9 +710,15 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
               <Card className='border border-border/60 bg-card/60'>
                 <CardHeader className='flex justify-between w-full'>
                   <div className=''>
-                    <CardTitle>Hydration Summary</CardTitle>
+                    <CardTitle>
+                      {t('users.view.hydration.summary.title', 'Hydration Summary')}
+                    </CardTitle>
                     <CardDescription>
-                      {reportPeriod ?? 'Aggregated metrics based on the selected range.'}
+                      {reportPeriod ??
+                        t(
+                          'users.view.hydration.summary.description',
+                          'Aggregated metrics based on the selected range.'
+                        )}
                     </CardDescription>
                   </div>
                 </CardHeader>
@@ -645,26 +726,31 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                   <div className='grid grid-cols-2 gap-3 text-sm md:grid-cols-3'>
                     {reportTypeLabel ? (
                       <div className='rounded-md border border-border/50 bg-muted/20 p-3'>
-                        <p className='text-xs uppercase text-muted-foreground'>Type</p>
+                        <p className='text-xs uppercase text-muted-foreground'>
+                          {t('users.view.hydration.summary.type', 'Type')}
+                        </p>
                         <p className='font-semibold capitalize'>{reportTypeLabel}</p>
                       </div>
                     ) : null}
                     {hydrationSummary ? (
                       <>
                         <SummaryStat
-                          label='Avg Intake'
+                          label={t('users.view.hydration.summary.avgIntake', 'Avg Intake')}
                           value={`${getNumberField(hydrationSummary, ['avg_intake_ml']) ?? 0} ml`}
                         />
                         <SummaryStat
-                          label='Avg Success'
+                          label={t('users.view.hydration.summary.avgSuccess', 'Avg Success')}
                           value={`${getNumberField(hydrationSummary, ['avg_success_rate']) ?? 0}%`}
                         />
                         <SummaryStat
-                          label='Day Streak'
-                          value={`${getNumberField(hydrationSummary, ['day_streak']) ?? 0} days`}
+                          label={t('users.view.hydration.summary.dayStreak', 'Day Streak')}
+                          value={t('users.view.hydration.summary.dayStreakValue', '{count} days').replace(
+                            '{count}',
+                            String(getNumberField(hydrationSummary, ['day_streak']) ?? 0)
+                          )}
                         />
                         <SummaryStat
-                          label='Notifications'
+                          label={t('users.view.hydration.summary.notifications', 'Notifications')}
                           value={getStringField(hydrationSummary, ['notification_display']) ?? '0/0'}
                         />
                       </>
@@ -672,11 +758,11 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                     {hydrationSummaryMeta ? (
                       <>
                         <SummaryStat
-                          label='Total Intake'
+                          label={t('users.view.hydration.summary.totalIntake', 'Total Intake')}
                           value={`${getNumberField(hydrationSummaryMeta, ['sumIntakeMl']) ?? 0} ml`}
                         />
                         <SummaryStat
-                          label='Total Success'
+                          label={t('users.view.hydration.summary.totalSuccess', 'Total Success')}
                           value={`${getNumberField(hydrationSummaryMeta, ['sumSuccessRate']) ?? 0}%`}
                         />
                       </>
@@ -689,12 +775,24 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
             {weeklyProgressList.length ? (
               <Card className='border border-border/60 bg-card/60'>
                 <CardHeader>
-                  <CardTitle>Weekly Progress</CardTitle>
-                  <CardDescription>Daily completion rate across the selected period.</CardDescription>
+                  <CardTitle>
+                    {t('users.view.hydration.weekly.title', 'Weekly Progress')}
+                  </CardTitle>
+                  <CardDescription>
+                    {t(
+                      'users.view.hydration.weekly.description',
+                      'Daily completion rate across the selected period.'
+                    )}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className='grid grid-cols-2 gap-3 text-sm md:grid-cols-3'>
                   {weeklyProgressList.map((dayData, index) => {
-                    const dayLabel = getStringField(dayData, ['day']) ?? `Day ${index + 1}`
+                    const dayLabel =
+                      getStringField(dayData, ['day']) ??
+                      t('users.view.hydration.weekly.dayLabel', 'Day {number}').replace(
+                        '{number}',
+                        String(index + 1)
+                      )
                     const pct = getNumberField(dayData, ['progress_percentage']) ?? 0
                     const statusClass =
                       pct >= 100
@@ -721,19 +819,32 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
         {todayDrinkLogs.length ? (
           <Card className='border border-border/60 bg-card/60'>
             <CardHeader>
-              <CardTitle>Today's Drink Logs</CardTitle>
-              <CardDescription>Latest entries synced for the current day.</CardDescription>
+              <CardTitle>{t('users.view.hydration.logs.title', "Today's Drink Logs")}</CardTitle>
+              <CardDescription>
+                {t(
+                  'users.view.hydration.logs.description',
+                  'Latest entries synced for the current day.'
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className='overflow-x-auto'>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Client Time</TableHead>
-                    <TableHead>Server Time</TableHead>
-                    <TableHead className='text-right'>Intake</TableHead>
-                    <TableHead className='text-right'>Target</TableHead>
-                    <TableHead className='text-right'>Cumulative</TableHead>
-                    <TableHead className='text-right'>Progress</TableHead>
+                  <TableHead>{t('users.view.hydration.logs.clientTime', 'Client Time')}</TableHead>
+                    <TableHead>{t('users.view.hydration.logs.serverTime', 'Server Time')}</TableHead>
+                    <TableHead className='text-right'>
+                      {t('users.view.hydration.logs.intake', 'Intake')}
+                    </TableHead>
+                    <TableHead className='text-right'>
+                      {t('users.view.hydration.logs.target', 'Target')}
+                    </TableHead>
+                    <TableHead className='text-right'>
+                      {t('users.view.hydration.logs.cumulative', 'Cumulative')}
+                    </TableHead>
+                    <TableHead className='text-right'>
+                      {t('users.view.hydration.logs.progress', 'Progress')}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -772,8 +883,15 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
             <Card className='border border-border/60 bg-card/60'>
               <CardHeader className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
                 <div>
-                  <CardTitle>Daily Breakdown</CardTitle>
-                  <CardDescription>Insights from recent hydration achievements.</CardDescription>
+                  <CardTitle>
+                    {t('users.view.hydration.breakdown.title', 'Daily Breakdown')}
+                  </CardTitle>
+                  <CardDescription>
+                    {t(
+                      'users.view.hydration.breakdown.description',
+                      'Insights from recent hydration achievements.'
+                    )}
+                  </CardDescription>
                 </div>
                 <span className='text-sm font-medium text-muted-foreground'>
                   Showing last {drinkHistory.length} day{drinkHistory.length > 1 ? 's' : ''}
@@ -811,7 +929,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                               </span>
                               {entry.success ? (
                                 <span className='text-xs font-medium text-emerald-600 dark:text-emerald-400'>
-                                  Target Met
+                                  {t('users.view.hydration.breakdown.targetMet', 'Target Met')}
                                 </span>
                               ) : null}
                             </div>
@@ -826,8 +944,13 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
           ) : (
             <Card className='border border-border/60 bg-card/60'>
               <CardHeader>
-                <CardTitle>Daily Breakdown</CardTitle>
-                <CardDescription>No historical records for the selected range.</CardDescription>
+                <CardTitle>{t('users.view.hydration.breakdown.title', 'Daily Breakdown')}</CardTitle>
+                <CardDescription>
+                  {t(
+                    'users.view.hydration.breakdown.empty',
+                    'No historical records for the selected range.'
+                  )}
+                </CardDescription>
               </CardHeader>
             </Card>
           )}
@@ -845,8 +968,11 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
         <DetailAccordionSection
             id='engagement'
-            title='Engagement & Controls'
-            description='Alarm settings, relationships, and moderation history.'
+            title={t('users.view.sections.engagement.title', 'Engagement & Controls')}
+            description={t(
+              'users.view.sections.engagement.description',
+              'Alarm settings, relationships, and moderation history.'
+            )}
             isOpen={openSection === 'engagement'}
             onToggle={handleToggleSection}
           >
@@ -860,8 +986,15 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                 {alarmSettingData ? (
                   <Card className='border border-border/60 bg-card/60'>
                     <CardHeader>
-                      <CardTitle>Alarm Settings</CardTitle>
-                      <CardDescription>Most recent hydrated alarm configuration.</CardDescription>
+                      <CardTitle>
+                        {t('users.view.engagement.alarm.title', 'Alarm Settings')}
+                      </CardTitle>
+                      <CardDescription>
+                        {t(
+                          'users.view.engagement.alarm.description',
+                          'Most recent hydrated alarm configuration.'
+                        )}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <dl className='space-y-2 text-sm'>
@@ -879,7 +1012,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                                 wordBreak: 'break-word',
                               }}
                             >
-                              {renderAlarmValue(key, value)}
+                              {renderAlarmValue(key, value, alarmValueLabels)}
                             </dd>
                           </div>
                         ))}
@@ -891,10 +1024,12 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                 {followerRows.length ? (
                   <Card className='border border-border/60 bg-card/60'>
                     <CardHeader>
-                      <CardTitle>Followers</CardTitle>
+                      <CardTitle>{t('users.view.engagement.followers.title', 'Followers')}</CardTitle>
                       <CardDescription>
-                        Showing the latest {Math.min(followerRows.length, 8)} accepted{' '}
-                        {followerRows.length === 1 ? 'follower' : 'followers'}
+                        {t(
+                          'users.view.engagement.followers.description',
+                          'Showing the latest {count} accepted followers'
+                        ).replace('{count}', String(Math.min(followerRows.length, 8)))}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -915,7 +1050,11 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                               ) : null}
                               {row.context || row.followedAt ? (
                                 <span className='text-xs text-muted-foreground'>
-                                  {row.context ?? 'Accepted'}
+                                  {row.context ??
+                                    t(
+                                      'users.view.engagement.followers.statusAccepted',
+                                      'Accepted'
+                                    )}
                                   {row.followedAt ? ` • ${row.followedAt}` : null}
                                 </span>
                               ) : null}
@@ -924,7 +1063,10 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                         ))}
                         {followerRows.length > 8 ? (
                           <li className='text-xs text-muted-foreground'>
-                            +{followerRows.length - 8} more accepted followers
+                            {t(
+                              'users.view.engagement.followers.more',
+                              '+{count} more accepted followers'
+                            ).replace('{count}', String(followerRows.length - 8))}
                           </li>
                         ) : null}
                       </ul>
@@ -935,9 +1077,12 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                 {/* {followingList.length ? ( */}
                   <Card className='border border-border/60 bg-card/60'>
                     <CardHeader>
-                      <CardTitle>Friends</CardTitle>
+                      <CardTitle>{t('users.view.engagement.friends.title', 'Friends')}</CardTitle>
                       <CardDescription>
-                        Showing the latest {Math.min(followingList.length, 8)} people they follow
+                        {t(
+                          'users.view.engagement.friends.description',
+                          'Showing the latest {count} people they follow'
+                        ).replace('{count}', String(Math.min(followingList.length, 8)))}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -964,7 +1109,10 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                         })}
                         {followingList.length > 8 ? (
                           <li className='text-xs text-muted-foreground'>
-                            +{followingList.length - 8} more friends
+                            {t('users.view.engagement.friends.more', '+{count} more friends').replace(
+                              '{count}',
+                              String(followingList.length - 8)
+                            )}
                           </li>
                         ) : null}
                       </ul>
@@ -1013,8 +1161,15 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                 {blockedUsersList.length ? (
                   <Card className='border border-border/60 bg-card/60'>
                     <CardHeader>
-                      <CardTitle>Blocked Users</CardTitle>
-                      <CardDescription>Accounts blocked by this user.</CardDescription>
+                      <CardTitle>
+                        {t('users.view.engagement.blocked.title', 'Blocked Users')}
+                      </CardTitle>
+                      <CardDescription>
+                        {t(
+                          'users.view.engagement.blocked.description',
+                          'Accounts blocked by this user.'
+                        )}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ul className='space-y-2 text-sm'>
@@ -1040,7 +1195,10 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                         })}
                         {blockedUsersList.length > 8 ? (
                           <li className='text-xs text-muted-foreground'>
-                            +{blockedUsersList.length - 8} more blocked users
+                            {t(
+                              'users.view.engagement.blocked.more',
+                              '+{count} more blocked users'
+                            ).replace('{count}', String(blockedUsersList.length - 8))}
                           </li>
                         ) : null}
                       </ul>
@@ -1051,14 +1209,23 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                 {sentReportsList.length ? (
                   <Card className='border border-border/60 bg-card/60 lg:col-span-2'>
                     <CardHeader>
-                      <CardTitle>Sent Reports</CardTitle>
-                      <CardDescription>Latest moderation reports filed by this user.</CardDescription>
+                      <CardTitle>{t('users.view.engagement.reports.title', 'Sent Reports')}</CardTitle>
+                      <CardDescription>
+                        {t(
+                          'users.view.engagement.reports.description',
+                          'Latest moderation reports filed by this user.'
+                        )}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ul className='space-y-2 text-sm'>
                         {sentReportsList.slice(0, 6).map((entry, index) => {
                           const reason =
-                            getStringField(entry, ['reason', 'category', 'type']) ?? `Report #${index + 1}`
+                            getStringField(entry, ['reason', 'category', 'type']) ??
+                            t('users.view.engagement.reports.fallback', 'Report #{number}').replace(
+                              '{number}',
+                              String(index + 1)
+                            )
                           const targetUser = getRecordField(entry, ['reported_user', 'target_user', 'user'])
                           const targetLabel = targetUser ? formatUserListItem(targetUser).primary : undefined
                           const createdAt = formatTimestamp(getStringField(entry, ['created_at', 'submitted_at']))
@@ -1069,17 +1236,30 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                             >
                               <div className='font-semibold'>{reason}</div>
                               {targetLabel ? (
-                                <div className='text-xs text-muted-foreground'>Target: {targetLabel}</div>
+                                <div className='text-xs text-muted-foreground'>
+                                  {t('users.view.engagement.reports.target', 'Target: {name}').replace(
+                                    '{name}',
+                                    targetLabel
+                                  )}
+                                </div>
                               ) : null}
                               {createdAt ? (
-                                <div className='text-xs text-muted-foreground'>Filed {createdAt}</div>
+                                <div className='text-xs text-muted-foreground'>
+                                  {t('users.view.engagement.reports.filedAt', 'Filed {date}').replace(
+                                    '{date}',
+                                    createdAt
+                                  )}
+                                </div>
                               ) : null}
                             </li>
                           )
                         })}
                         {sentReportsList.length > 6 ? (
                           <li className='text-xs text-muted-foreground'>
-                            +{sentReportsList.length - 6} additional reports
+                            {t(
+                              'users.view.engagement.reports.more',
+                              '+{count} additional reports'
+                            ).replace('{count}', String(sentReportsList.length - 6))}
                           </li>
                         ) : null}
                       </ul>
@@ -1088,14 +1268,22 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                 ) : null}
               </div>
             ) : (
-              <p className='text-sm text-muted-foreground'>No engagement or moderation data available.</p>
+              <p className='text-sm text-muted-foreground'>
+                {t(
+                  'users.view.engagement.empty',
+                  'No engagement or moderation data available.'
+                )}
+              </p>
             )}
           </DetailAccordionSection>
 
           <DetailAccordionSection
             id='notifications'
-            title='Notifications'
-            description='Follower activity and delivery logs.'
+            title={t('users.view.sections.notifications.title', 'Notifications')}
+            description={t(
+              'users.view.sections.notifications.description',
+              'Follower activity and delivery logs.'
+            )}
             isOpen={openSection === 'notifications'}
             onToggle={handleToggleSection}
           >
@@ -1105,14 +1293,19 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
             lastWeekNotifications.length ? (
               <Card className='border border-border/60 bg-card/60'>
                 <CardHeader>
-                  <CardTitle>Notifications</CardTitle>
-                  <CardDescription>Recent engagement and follower updates.</CardDescription>
+                  <CardTitle>{t('users.view.notifications.cardTitle', 'Notifications')}</CardTitle>
+                  <CardDescription>
+                    {t(
+                      'users.view.notifications.cardDescription',
+                      'Recent engagement and follower updates.'
+                    )}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className='space-y-6 text-sm'>
                   {newFollowersList.length ? (
                     <section>
                       <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                        New Followers
+                        {t('users.view.notifications.newFollowers', 'New Followers')}
                       </div>
                       <ul className='space-y-2'>
                         {newFollowersList.slice(0, 6).map((item, index) => {
@@ -1136,7 +1329,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                   {dailyFollowerProgressList.length ? (
                     <section>
                       <div className='mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                        Follower Progress
+                        {t('users.view.notifications.followerProgress', 'Follower Progress')}
                       </div>
                       <ul className='space-y-3'>
                         {dailyFollowerProgressList.slice(0, 5).map((item, index) => {
@@ -1153,7 +1346,15 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                               <div className='flex flex-1 flex-col'>
                                 <span className='font-semibold'>{user.primary}</span>
                                 <span className='text-xs text-muted-foreground'>
-                                  {progress !== undefined ? `${clampPercentage(progress)}% hydration progress` : 'Progress unavailable'}
+                                  {progress !== undefined
+                                    ? t(
+                                        'users.view.notifications.hydrationProgress',
+                                        '{value}% hydration progress'
+                                      ).replace('{value}', String(clampPercentage(progress)))
+                                    : t(
+                                        'users.view.notifications.progressUnavailable',
+                                        'Progress unavailable'
+                                      )}
                                 </span>
                                 {timestamp ? (
                                   <span className='text-[10px] text-muted-foreground'>{timestamp}</span>
@@ -1168,17 +1369,23 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
                   {todayNotifications.length ? (
                     <NotificationsListSection
-                      title='Today'
+                      title={t('users.view.notifications.today', 'Today')}
                       items={todayNotifications}
-                      fallbackLabel='Today notification'
+                      fallbackLabel={t(
+                        'users.view.notifications.todayFallback',
+                        'Today notification'
+                      )}
                     />
                   ) : null}
 
                   {lastWeekNotifications.length ? (
                     <NotificationsListSection
-                      title='Last Week'
+                      title={t('users.view.notifications.lastWeek', 'Last Week')}
                       items={lastWeekNotifications}
-                      fallbackLabel='Last week notification'
+                      fallbackLabel={t(
+                        'users.view.notifications.lastWeekFallback',
+                        'Last week notification'
+                      )}
                     />
                   ) : null}
 
@@ -1186,18 +1393,30 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
                   !dailyFollowerProgressList.length &&
                   !todayNotifications.length &&
                   !lastWeekNotifications.length ? (
-                    <p className='text-sm text-muted-foreground'>No notification data available.</p>
+                    <p className='text-sm text-muted-foreground'>
+                      {t('users.view.notifications.empty', 'No notification data available.')}
+                    </p>
                   ) : null}
                 </CardContent>
               </Card>
             ) : (
               <Card className='border border-border/60 bg-card/60'>
                 <CardHeader>
-                  <CardTitle>Notifications</CardTitle>
-                  <CardDescription>Recent engagement and follower updates.</CardDescription>
+                  <CardTitle>{t('users.view.notifications.cardTitle', 'Notifications')}</CardTitle>
+                  <CardDescription>
+                    {t(
+                      'users.view.notifications.cardDescription',
+                      'Recent engagement and follower updates.'
+                    )}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className='text-sm text-muted-foreground'>No notification data available.</p>
+                  <p className='text-sm text-muted-foreground'>
+                    {t(
+                      'users.view.notifications.empty',
+                      'No notification data available.'
+                    )}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -1205,7 +1424,9 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
         </div>
 
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Close</Button>
+          <Button onClick={() => onOpenChange(false)}>
+            {t('common.close', 'Close')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1477,13 +1698,6 @@ function formatMeasurement(value?: number | null, unit?: string) {
   return '-'
 }
 
-function formatProfileBoolean(value?: boolean | null) {
-  if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No'
-  }
-  return '-'
-}
-
 function formatProfileDate(value?: string | null) {
   if (!value) return '-'
   const parsed = new Date(value)
@@ -1493,14 +1707,14 @@ function formatProfileDate(value?: string | null) {
   return format(parsed, 'dd MMM yyyy')
 }
 
-function ProfileColorSwatch({ color }: { color: string }) {
+function ProfileColorSwatch({ color, label }: { color: string; label: string }) {
   const normalized = color?.trim() || '#000000'
   return (
     <span className='inline-flex items-center gap-2'>
       <span
         className='h-4 w-4 rounded-full border border-border/60'
         style={{ backgroundColor: normalized }}
-        aria-label='Profile color preview'
+        aria-label={label}
       />
       {normalized}
     </span>
@@ -1509,7 +1723,17 @@ function ProfileColorSwatch({ color }: { color: string }) {
 
 const DEFAULT_AVATAR_SRC = '/avatars/shadcn.jpg'
 
-function ProfileAvatarPreview({ src, fallback }: { src?: string | null; fallback: string }) {
+function ProfileAvatarPreview({
+  src,
+  fallback,
+  openLabel,
+  defaultLabel,
+}: {
+  src?: string | null
+  fallback: string
+  openLabel: string
+  defaultLabel: string
+}) {
   const imageSrc = src && src.trim().length > 0 ? src : DEFAULT_AVATAR_SRC
   const initials = getInitials(fallback)
   return (
@@ -1527,17 +1751,27 @@ function ProfileAvatarPreview({ src, fallback }: { src?: string | null; fallback
             rel='noreferrer'
             className='text-xs text-primary underline decoration-dotted'
           >
-            Open avatar
+            {openLabel}
           </a>
         ) : (
-          <span className='text-xs text-muted-foreground'>Default avatar</span>
+          <span className='text-xs text-muted-foreground'>{defaultLabel}</span>
         )}
       </div>
     </div>
   )
 }
 
-function renderAlarmValue(key: string, value: unknown): ReactNode {
+type AlarmValueLabels = {
+  empty: string
+  enabled: string
+  disabled: string
+}
+
+function renderAlarmValue(
+  key: string,
+  value: unknown,
+  labels: AlarmValueLabels
+): ReactNode {
   const normalizedKey = key.toLowerCase()
   const renderInline = (text: string) => (
     <span className='inline-flex w-full justify-end text-right'>{text}</span>
@@ -1556,7 +1790,7 @@ function renderAlarmValue(key: string, value: unknown): ReactNode {
       .filter((entry): entry is string => Boolean(entry))
 
     if (!times.length) {
-      return renderInline('—')
+      return renderInline(labels.empty)
     }
 
     return (
@@ -1581,7 +1815,7 @@ function renderAlarmValue(key: string, value: unknown): ReactNode {
     return renderInline(value)
   }
 
-  return renderInline(formatValueDisplay(value))
+  return renderInline(formatValueDisplay(value, labels))
 }
 
 function formatAlarmDate(value: string): string | null {
@@ -1607,9 +1841,9 @@ function getInitials(value: string): string {
   return initials || 'UU'
 }
 
-function formatValueDisplay(value: unknown): string {
-  if (value === null || typeof value === 'undefined') return '—'
-  if (typeof value === 'boolean') return value ? 'Enabled' : 'Disabled'
+function formatValueDisplay(value: unknown, labels: AlarmValueLabels): string {
+  if (value === null || typeof value === 'undefined') return labels.empty
+  if (typeof value === 'boolean') return value ? labels.enabled : labels.disabled
   if (typeof value === 'number') return value.toString()
   if (typeof value === 'string') return value
   if (Array.isArray(value)) {
@@ -1622,7 +1856,7 @@ function formatValueDisplay(value: unknown): string {
         return JSON.stringify(entry)
       })
       .filter((entry) => entry.trim().length > 0)
-    return formatted.length ? formatted.join(', ') : '—'
+    return formatted.length ? formatted.join(', ') : labels.empty
   }
   return JSON.stringify(value)
 }

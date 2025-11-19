@@ -64,7 +64,12 @@ export function ReportsViewDialog({ report, open, onOpenChange }: ReportsViewDia
             </p>
             <p className='text-sm font-medium'>{report.reporterName}</p>
             {report.reporterId ? (
-              <p className='text-xs text-muted-foreground'>ID: {report.reporterId}</p>
+              <p className='text-xs text-muted-foreground'>
+                {t('reports.viewDialog.reporterId', 'ID: {id}').replace(
+                  '{id}',
+                  report.reporterId
+                )}
+              </p>
             ) : null}
           </div>
           <div className='rounded-md border bg-muted/20 p-3'>
@@ -73,7 +78,12 @@ export function ReportsViewDialog({ report, open, onOpenChange }: ReportsViewDia
             </p>
             <p className='text-sm font-medium'>{report.reportedName}</p>
             {report.reportedId ? (
-              <p className='text-xs text-muted-foreground'>ID: {report.reportedId}</p>
+              <p className='text-xs text-muted-foreground'>
+                {t('reports.viewDialog.reportedId', 'ID: {id}').replace(
+                  '{id}',
+                  report.reportedId
+                )}
+              </p>
             ) : null}
           </div>
         </section>
