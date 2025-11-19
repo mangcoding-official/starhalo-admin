@@ -21,7 +21,7 @@ type DataTableColumnHeaderProps<TData, TValue> =
     title: string
   }
 
-type ColumnMeta = {
+type ColumnLabelMeta = {
   label?: string
 }
 
@@ -32,7 +32,9 @@ export function DataTableColumnHeader<TData, TValue>({
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const meta =
     (column.columnDef.meta ??
-      (column.columnDef.meta = {})) as ColumnMeta
+      (column.columnDef.meta = { className: '' })) as ColumnLabelMeta & {
+      className?: string
+    }
   if (!meta.label) {
     meta.label = title
   }
