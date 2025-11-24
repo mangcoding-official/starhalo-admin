@@ -496,25 +496,25 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
               <div className={`grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 ${profile ? "hidden" : "grid"}`}>
                 <DisplayField
-                  label='Username'
+                  label={`${t('users.view.fields.username', 'UserName')}`}
                   value={canonicalDisplayName ?? '-'}
                   isLoading={isPending}
                   skeletonWidth='w-32'
                 />
                 <DisplayField
-                  label='Email'
+                  label={`${t('users.view.fields.email', 'Email')}`}
                   value={detail?.email ?? currentRow?.email ?? '-'}
                   isLoading={isPending}
                   skeletonWidth='w-40'
                 />
                 <DisplayField
-                  label='Status'
+                  label={`${t('users.view.fields.status', 'Status')}`}
                   value={detail?.status ?? '-'}
                   isLoading={isPending}
                   skeletonWidth='w-16'
                 />
                 <DisplayField
-                  label='Email Verified'
+                  label={`${t('users.view.fields.emailVerified', 'Email Verified')}`}
                   value={emailVerified}
                   isLoading={isPending}
                   skeletonWidth='w-24'
