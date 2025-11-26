@@ -10,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useTranslation } from '@/lib/i18n'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
@@ -32,6 +33,7 @@ export function DataTableBulkActions<TData>({
   entityName,
   children,
 }: DataTableBulkActionsProps<TData>): React.ReactNode | null {
+  const { t } = useTranslation()
   const selectedRows = table.getFilteredSelectedRowModel().rows
   const selectedCount = selectedRows.length
   const toolbarRef = useRef<HTMLDivElement>(null)
@@ -159,15 +161,17 @@ export function DataTableBulkActions<TData>({
                 size='icon'
                 onClick={handleClearSelection}
                 className='size-6 rounded-full'
-                aria-label='Clear selection'
-                title='Clear selection (Escape)'
+                aria-label={t('dataTable.bulk.clearSelection')}
+                title={t('dataTable.bulk.clearSelectionWithEscape')}
               >
                 <X />
-                <span className='sr-only'>Clear selection</span>
+                <span className='sr-only'>
+                  {t('dataTable.bulk.clearSelection')}
+                </span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Clear selection (Escape)</p>
+              <p>{t('dataTable.bulk.clearSelectionWithEscape')}</p>
             </TooltipContent>
           </Tooltip>
 

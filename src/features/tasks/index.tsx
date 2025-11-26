@@ -4,6 +4,7 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { useTranslation } from '@/lib/i18n'
 import { TasksDialogs } from './components/tasks-dialogs'
 import { TasksPrimaryButtons } from './components/tasks-primary-buttons'
 import { TasksProvider } from './components/tasks-provider'
@@ -11,6 +12,8 @@ import { TasksTable } from './components/tasks-table'
 import { tasks } from './data/tasks'
 
 export function Tasks() {
+  const { t } = useTranslation()
+
   return (
     <TasksProvider>
       <Header fixed>
@@ -25,9 +28,11 @@ export function Tasks() {
       <Main>
         <div className='mb-2 flex flex-wrap items-center justify-between space-y-2 gap-x-4'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>Tasks</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>
+              {t('tasks.page.title')}
+            </h2>
             <p className='text-muted-foreground'>
-              Here&apos;s a list of your tasks for this month!
+              {t('tasks.page.description')}
             </p>
           </div>
           <TasksPrimaryButtons />

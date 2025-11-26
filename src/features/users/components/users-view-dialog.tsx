@@ -258,7 +258,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
     return [
       { label: t('users.view.fields.userId', 'User ID'), value: profile.userId ?? '-' },
       // { label: 'Username', value: profile.username ?? '-' },
-      { label: t('users.view.fields.address', 'Address'), value: profile.address ?? '-' },
+      { label: t('users.view.fields.email', 'Email'), value: detail?.email ?? currentRow?.email ?? '-' },
       {
         label: t('users.view.fields.dateOfBirth', 'Date of Birth'),
         value: formatProfileDate(profile.dateOfBirth),
@@ -318,22 +318,22 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
         label: t('users.view.fields.alarmEnabled', 'Alarm Enabled'),
         value: formatBooleanLabel(profile.isAlarm),
       },
-      {
-        label: t('users.view.fields.agreeService', 'Agree: Service'),
-        value: formatBooleanLabel(profile.isAgreeService),
-      },
-      {
-        label: t('users.view.fields.agreePrivate', 'Agree: Private Data'),
-        value: formatBooleanLabel(profile.isAgreePrivateData),
-      },
-      {
-        label: t('users.view.fields.agreeLocation', 'Agree: Location'),
-        value: formatBooleanLabel(profile.isAgreeLocation),
-      },
-      {
-        label: t('users.view.fields.agreeMarketing', 'Agree: Marketing'),
-        value: formatBooleanLabel(profile.isAgreeMarketing),
-      },
+      // {
+      //   label: t('users.view.fields.agreeService', 'Agree: Service'),
+      //   value: formatBooleanLabel(profile.isAgreeService),
+      // },
+      // {
+      //   label: t('users.view.fields.agreePrivate', 'Agree: Private Data'),
+      //   value: formatBooleanLabel(profile.isAgreePrivateData),
+      // },
+      // {
+      //   label: t('users.view.fields.agreeLocation', 'Agree: Location'),
+      //   value: formatBooleanLabel(profile.isAgreeLocation),
+      // },
+      // {
+      //   label: t('users.view.fields.agreeMarketing', 'Agree: Marketing'),
+      //   value: formatBooleanLabel(profile.isAgreeMarketing),
+      // },
       {
         label: t('users.view.fields.notificationsMuted', 'Notifications Muted'),
         value: formatBooleanLabel(profile.isNotificationMuted),
