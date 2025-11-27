@@ -111,7 +111,7 @@ function Unauthorized() {
   const { history } = useRouter()
 
   const [opened, setOpened] = useState(true)
-  const [cancelled, setCancelled] = useState(false)
+  const [cancelled] = useState(false)
   const [countdown, setCountdown] = useState(COUNTDOWN)
 
   // Set and run the countdown conditionally
