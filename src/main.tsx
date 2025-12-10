@@ -25,6 +25,7 @@ const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         if (import.meta.env.DEV) {
           // console.log({ failureCount, error })
+          // console.log({ failureCount, error })
         }
 
         if (failureCount >= 0 && import.meta.env.DEV) return false
