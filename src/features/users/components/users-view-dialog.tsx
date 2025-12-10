@@ -103,7 +103,7 @@ export function UsersViewDialog({ currentRow, open, onOpenChange }: UsersViewDia
 
   const detail = data
 
-  console.log(detail)
+  // debug: detail fetched for user view
 
   const emailVerified =
     detail?.emailVerifiedAt && !Number.isNaN(detail.emailVerifiedAt.getTime())
@@ -1869,7 +1869,7 @@ function clampPercentage(value?: number | null): number {
   return Math.max(0, Math.min(Math.round(scaled), 100))
 }
 
-function getNotificationIconHint(message: string, type?: string | null): any {
+function getNotificationIconHint(message: string, type?: string | null): ReactNode {
   const loweredType = type?.toLowerCase() ?? ''
   const text = message.toLowerCase()
   if (loweredType.includes('friend') || loweredType.includes('follow') || text.includes('friend') || text.includes('request')) {
