@@ -81,4 +81,9 @@
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2"
   }
+  ,
+  "overrides": {
+    "@types/react": "^19.2.1",
+    "csstype": "^4.1.11"
+  }
 }
