@@ -84,6 +84,6 @@
   ,
   "overrides": {
     "@types/react": "^19.2.1",
-    "csstype": "^4.1.11"
+    "csstype": "^3.2.2"
   }
 }
