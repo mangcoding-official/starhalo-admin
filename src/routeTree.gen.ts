@@ -197,6 +197,7 @@ const AuthenticatedErrorsErrorRoute =
 export interface FileRoutesByFullPath {
   '/clerk': typeof ClerkAuthenticatedRouteRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
+  '/clerk/': typeof ClerkauthRouteRouteWithChildren
   '/otp': typeof authOtpRoute
   '/sign-in': typeof authSignInRoute
   '/401': typeof errors401Route
@@ -286,6 +287,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/clerk'
     | '/settings'
+    | '/clerk/'
     | '/otp'
     | '/sign-in'
     | '/401'
@@ -463,8 +465,8 @@ declare module '@tanstack/react-router' {
     }
     '/clerk/(auth)': {
       id: '/clerk/(auth)'
-      path: ''
-      fullPath: '/clerk'
+      path: '/'
+      fullPath: '/clerk/'
       preLoaderRoute: typeof ClerkauthRouteRouteImport
       parentRoute: typeof ClerkRouteRoute
     }
