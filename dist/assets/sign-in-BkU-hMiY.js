@@ -1,0 +1,1 @@
+import{j as m}from"./index-Yf6o4kVw.js";import{b as o}from"./index-99IPPFch.js";import{S as a}from"./skeleton-DZtnwtvs.js";import"./index-CN_aPWk9.js";const e=()=>m.jsx(o,{initialValues:{emailAddress:"your_mail+shadcn_admin@gmail.com"},fallback:m.jsx(a,{className:"h-[30rem] w-[25rem]"})});export{e as component};
